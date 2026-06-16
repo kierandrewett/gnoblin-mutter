@@ -2321,37 +2321,35 @@ xdg_surface_constructor_get_popup (struct wl_client   *client,
   struct wl_resource *xdg_wm_base_resource = constructor->shell_client->resource;
   struct wl_resource *xdg_surface_resource = constructor->resource;
   MetaWaylandSurface *parent_surface;
-  MetaWindow *parent_window;
   MetaWaylandXdgPositioner *xdg_positioner;
   MetaWaylandXdgPopup *xdg_popup;
   MetaWaylandXdgSurface *xdg_surface;
 
-  if (!parent_resource)
+  if (parent_resource)
     {
-      wl_resource_post_error (xdg_wm_base_resource,
-                              XDG_WM_BASE_ERROR_INVALID_POPUP_PARENT,
-                              "Parent surface is null but Mutter does not yet "
-                              "support specifying parent surfaces via other "
-                              "protocols");
-      return;
-    }
+      MetaWindow *parent_window;
 
-  parent_surface = surface_from_xdg_surface_resource (parent_resource);
-  if (!parent_surface || !META_IS_WAYLAND_XDG_SURFACE (parent_surface->role))
-    {
-      wl_resource_post_error (xdg_wm_base_resource,
-                              XDG_WM_BASE_ERROR_INVALID_POPUP_PARENT,
-                              "Invalid popup parent role");
-      return;
-    }
+      parent_surface = surface_from_xdg_surface_resource (parent_resource);
+      if (!parent_surface || !META_IS_WAYLAND_XDG_SURFACE (parent_surface->role))
+        {
+          wl_resource_post_error (xdg_wm_base_resource,
+                                  XDG_WM_BASE_ERROR_INVALID_POPUP_PARENT,
+                                  "Invalid popup parent role");
+          return;
+        }
 
-  parent_window = meta_wayland_surface_get_window (parent_surface);
-  if (!parent_window)
+      parent_window = meta_wayland_surface_get_window (parent_surface);
+      if (!parent_window)
+        {
+          wl_resource_post_error (xdg_wm_base_resource,
+                                  XDG_WM_BASE_ERROR_INVALID_POPUP_PARENT,
+                                  "Invalid popup parent window");
+          return;
+        }
+    }
+  else
     {
-      wl_resource_post_error (xdg_wm_base_resource,
-                              XDG_WM_BASE_ERROR_INVALID_POPUP_PARENT,
-                              "Invalid popup parent window");
-      return;
+      parent_surface = NULL;
     }
 
   if (!meta_wayland_surface_assign_role (surface,
@@ -2385,6 +2383,26 @@ xdg_surface_constructor_get_popup (struct wl_client   *client,
   xdg_popup->setup.parent_surface = parent_surface;
 
   meta_wayland_xdg_surface_reset (xdg_surface);
+}
+
+gboolean
+meta_wayland_xdg_popup_set_parent_surface (struct wl_resource *popup_resource,
+                                           MetaWaylandSurface *parent_surface)
+{
+  MetaWaylandXdgPopup *xdg_popup = wl_resource_get_user_data (popup_resource);
+
+  if (!META_IS_WAYLAND_XDG_POPUP (xdg_popup))
+    return FALSE;
+
+  if (xdg_popup->parent_surface || xdg_popup->setup.parent_surface)
+    return FALSE;
+
+  if (!meta_wayland_surface_get_window (parent_surface))
+    return FALSE;
+
+  xdg_popup->setup.parent_surface = parent_surface;
+
+  return TRUE;
 }
 
 static void

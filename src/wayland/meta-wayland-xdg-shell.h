@@ -53,3 +53,6 @@ void meta_wayland_xdg_toplevel_set_hint_restored (MetaWaylandXdgToplevel *xdg_to
 
 MtkRectangle
 meta_wayland_xdg_surface_get_window_geometry (MetaWaylandXdgSurface *xdg_surface);
+
+gboolean meta_wayland_xdg_popup_set_parent_surface (struct wl_resource  *popup_resource,
+                                                    MetaWaylandSurface  *parent_surface);
