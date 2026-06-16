@@ -56,6 +56,68 @@
 #include "mtk/mtk.h"
 #include "wayland/meta-wayland-private.h"
 
+#include <gio/gio.h>
+
+/* gnoblin tooling: every Wayland key event emits a session-bus D-Bus
+ * signal so user-space tools can observe global key input without
+ * needing /dev/input access. */
+static GDBusConnection *_kdr_session_bus = NULL;
+static gboolean _kdr_session_bus_requested = FALSE;
+
+static void
+_kdr_on_session_bus_ready (GObject      *source_object,
+                           GAsyncResult *result,
+                           gpointer      user_data)
+{
+  g_autoptr (GError) error = NULL;
+  GDBusConnection *connection;
+
+  connection = g_bus_get_finish (result, &error);
+  if (!connection)
+    return;
+
+  if (_kdr_session_bus)
+    {
+      g_object_unref (connection);
+      return;
+    }
+
+  _kdr_session_bus = connection;
+}
+
+static void
+_kdr_ensure_session_bus (void)
+{
+  if (_kdr_session_bus || _kdr_session_bus_requested)
+    return;
+
+  _kdr_session_bus_requested = TRUE;
+  g_bus_get (G_BUS_TYPE_SESSION, NULL, _kdr_on_session_bus_ready, NULL);
+}
+
+static void
+_kdr_emit_key_event (uint32_t keysym,
+                     uint32_t state,
+                     uint32_t unicode,
+                     gboolean is_press)
+{
+  if (!_kdr_session_bus)
+    {
+      _kdr_ensure_session_bus ();
+      return;
+    }
+
+  g_dbus_connection_emit_signal (_kdr_session_bus,
+                                 NULL,
+                                 "/dev/kieran/mutter/keys",
+                                 "dev.kieran.mutter.Keys",
+                                 "Event",
+                                 g_variant_new ("(uuub)",
+                                                keysym, state, unicode,
+                                                is_press),
+                                 NULL);
+}
+
 typedef struct
 {
   struct xkb_keymap *keymap;
@@ -626,6 +688,15 @@ meta_wayland_keyboard_handle_event (MetaWaylandKeyboard   *keyboard,
   if ((flags & CLUTTER_EVENT_FLAG_SYNTHETIC) &&
       !(flags & CLUTTER_EVENT_FLAG_INPUT_METHOD))
     return FALSE;
+
+  /* gnoblin tooling: broadcast the key on the session bus. */
+  {
+    ClutterEvent *cev = (ClutterEvent *) event;
+    _kdr_emit_key_event (clutter_event_get_key_symbol (cev),
+                         clutter_event_get_state (cev),
+                         clutter_event_get_key_unicode (cev),
+                         clutter_event_type (cev) == CLUTTER_KEY_PRESS);
+  }
 
   meta_topic (META_DEBUG_WAYLAND,
               "Handling key %s event code %d",
