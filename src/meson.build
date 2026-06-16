@@ -535,6 +535,9 @@ mutter_sources += [
   'wayland/meta-wayland-fractional-scale.h',
   'wayland/meta-wayland-gtk-shell.c',
   'wayland/meta-wayland-gtk-shell.h',
+  # gnoblin: wlr-layer-shell implementation from the source overlay
+  'wayland/meta-wayland-layer-shell.c',
+  'wayland/meta-wayland-layer-shell.h',
   'wayland/meta-wayland.h',
   'wayland/meta-wayland-idle-inhibit.c',
   'wayland/meta-wayland-idle-inhibit.h',
@@ -1015,6 +1018,8 @@ wayland_protocols = [
   ['fractional-scale', 'staging', 1, ],
   ['fifo', 'staging', 1, ],
   ['gtk-shell', 'private', ],
+  # gnoblin: vendored wlr-layer-shell protocol
+  ['wlr-layer-shell-unstable-v1', 'private', ],
   ['idle-inhibit', 'unstable', 1, ],
   ['keyboard-shortcuts-inhibit', 'unstable', 1, ],
   ['linux-dmabuf', 'stable', 1, ],

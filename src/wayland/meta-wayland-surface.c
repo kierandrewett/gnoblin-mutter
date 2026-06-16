@@ -41,6 +41,7 @@
 #include "wayland/meta-wayland-color-representation.h"
 #include "wayland/meta-wayland-fractional-scale.h"
 #include "wayland/meta-wayland-gtk-shell.h"
+#include "wayland/meta-wayland-layer-shell.h"
 #include "wayland/meta-wayland-outputs.h"
 #include "wayland/meta-wayland-presentation-time-private.h"
 #include "wayland/meta-wayland-private.h"
@@ -1913,6 +1914,7 @@ meta_wayland_shell_init (MetaWaylandCompositor *compositor)
 {
   meta_wayland_xdg_shell_init (compositor);
   meta_wayland_init_gtk_shell (compositor);
+  meta_wayland_init_layer_shell (compositor);
   meta_wayland_init_viewporter (compositor);
   meta_wayland_init_fractional_scale (compositor);
 }
