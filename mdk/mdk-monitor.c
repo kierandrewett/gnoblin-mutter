@@ -115,8 +115,10 @@ update_cursor (MdkMonitor *monitor)
 
   if (mdk_context_get_emulate_touch (monitor->context))
     cursor = gdk_cursor_new_from_name ("pointer", NULL);
-  else
+  else if (g_strcmp0 (g_getenv ("GNOBLIN_DEVKIT_SHOW_HOST_CURSOR"), "1") != 0)
     cursor = gdk_cursor_new_from_name ("none", NULL);
+  else
+    cursor = gdk_cursor_new_from_name ("default", NULL);
 
   gtk_widget_set_cursor (GTK_WIDGET (monitor), cursor);
 }
