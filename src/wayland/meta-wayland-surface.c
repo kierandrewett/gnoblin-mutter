@@ -46,6 +46,7 @@
 #include "wayland/meta-wayland-presentation-time-private.h"
 #include "wayland/meta-wayland-private.h"
 #include "wayland/meta-wayland-region.h"
+#include "wayland/meta-wayland-screencopy.h"
 #include "wayland/meta-wayland-seat.h"
 #include "wayland/meta-wayland-subsurface.h"
 #include "wayland/meta-wayland-transaction.h"
@@ -1917,6 +1918,7 @@ meta_wayland_shell_init (MetaWaylandCompositor *compositor)
   meta_wayland_init_layer_shell (compositor);
   meta_wayland_init_viewporter (compositor);
   meta_wayland_init_fractional_scale (compositor);
+  meta_wayland_init_screencopy (compositor);
 }
 
 void

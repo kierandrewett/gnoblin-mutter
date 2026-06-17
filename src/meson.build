@@ -578,6 +578,10 @@ mutter_sources += [
   'wayland/meta-wayland-private.h',
   'wayland/meta-wayland-region.c',
   'wayland/meta-wayland-region.h',
+  # gnoblin: wlr-screencopy-unstable-v1 (sources copied from the gnoblin
+  # overlay src/screencopy/ at build time)
+  'wayland/meta-wayland-screencopy.c',
+  'wayland/meta-wayland-screencopy.h',
   'wayland/meta-wayland-seat.c',
   'wayland/meta-wayland-seat.h',
   'wayland/meta-wayland-shell-surface.c',
@@ -1040,6 +1044,8 @@ wayland_protocols = [
   ['xdg-foreign', 'unstable', 2, ],
   ['xdg-output', 'unstable', 1, ],
   ['xdg-shell', 'stable', ],
+  # gnoblin: vendored wlr-screencopy protocol (overlay src/wayland/protocol/)
+  ['wlr-screencopy-unstable-v1', 'private', ],
   ['xdg-system-bell', 'staging', 1, ],
   ['xdg-toplevel-drag', 'staging', 1, ],
   ['xdg-toplevel-tag', 'staging', 1, ],
