@@ -1215,6 +1215,13 @@ pkg.generate(libmutter,
     'have_xwayland=@0@'.format(have_xwayland),
     'have_fonts=@0@'.format(have_fonts),
   ],
+  uninstalled_variables: [
+    'apiversion=' + libmutter_api_version,
+    'girdir=${prefix}/src',
+    'typelibdir=${prefix}/src',
+    'have_xwayland=@0@'.format(have_xwayland),
+    'have_fonts=@0@'.format(have_fonts),
+  ],
   install_dir: pcdir,
 )
 
