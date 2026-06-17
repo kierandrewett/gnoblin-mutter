@@ -58,6 +58,7 @@
 #include "wayland/meta-cursor-wayland.h"
 #include "wayland/meta-wayland-buffer.h"
 #include "wayland/meta-wayland-cursor-surface.h"
+#include "wayland/meta-wayland-layer-shell.h"
 #include "wayland/meta-wayland-data-device.h"
 #include "wayland/meta-wayland-pointer.h"
 #include "wayland/meta-wayland-popup.h"
@@ -339,6 +340,36 @@ surface_get_effective_window (MetaWaylandSurface *surface)
     return NULL;
 
   return meta_wayland_surface_get_window (toplevel);
+}
+
+static void
+maybe_focus_layer_shell_on_button_press (MetaWaylandPointer *pointer,
+                                         const ClutterEvent *event)
+{
+  MetaWindow *window;
+
+  if (clutter_event_type (event) != CLUTTER_BUTTON_PRESS)
+    return;
+
+  if (!pointer->focus_surface)
+    return;
+
+  window = surface_get_effective_window (pointer->focus_surface);
+  if (!window)
+    return;
+
+  if (GPOINTER_TO_INT (g_object_get_data (G_OBJECT (window),
+                                          META_WAYLAND_LAYER_SHELL_KEYBOARD_FOCUSABLE_KEY)) != 0)
+    {
+      MetaWaylandSeat *seat = meta_wayland_pointer_get_seat (pointer);
+      MetaWaylandSurface *focus_surface =
+        meta_window_get_wayland_surface (window);
+
+      meta_window_focus (window, clutter_event_get_time (event));
+
+      if (focus_surface && meta_wayland_seat_has_keyboard (seat))
+        meta_wayland_keyboard_set_focus (seat->keyboard, focus_surface);
+    }
 }
 
 static void
@@ -755,6 +786,8 @@ handle_button_event (MetaWaylandPointer *pointer,
   implicit_grab = (clutter_event_type (event) == CLUTTER_BUTTON_PRESS) && (count_buttons (event) == 1);
   if (implicit_grab)
     clutter_event_get_coords (event, &pointer->grab_x, &pointer->grab_y);
+
+  maybe_focus_layer_shell_on_button_press (pointer, event);
 
   meta_wayland_pointer_send_button (pointer, event);
 

@@ -38,6 +38,7 @@
 #include "core/window-private.h"
 #include "wayland/meta-wayland-actor-surface.h"
 #include "wayland/meta-wayland-client-private.h"
+#include "wayland/meta-wayland-layer-shell.h"
 #include "wayland/meta-wayland-private.h"
 #include "wayland/meta-wayland-surface-private.h"
 #include "wayland/meta-wayland-toplevel-drag.h"
@@ -228,6 +229,13 @@ meta_window_wayland_configure (MetaWindowWayland              *wl_window,
 }
 
 static gboolean
+is_layer_shell_window (MetaWindow *window)
+{
+  return g_object_get_data (G_OBJECT (window),
+                            META_WAYLAND_LAYER_SHELL_STACK_LAYER_KEY) != NULL;
+}
+
+static gboolean
 is_drag_resizing_window (MetaWindowDrag *window_drag,
                          MetaWindow     *window)
 {
@@ -251,6 +259,9 @@ surface_state_changed (MetaWindow *window)
 
   /* don't send notify when the window is being unmanaged */
   if (window->unmanaging)
+    return;
+
+  if (is_layer_shell_window (window))
     return;
 
   g_return_if_fail (last_sent_configuration);
@@ -965,12 +976,20 @@ meta_window_wayland_shortcuts_inhibited (MetaWindow         *window,
 static gboolean
 meta_window_wayland_is_focusable (MetaWindow *window)
 {
+  if (is_layer_shell_window (window))
+    return GPOINTER_TO_INT (
+      g_object_get_data (G_OBJECT (window),
+                         META_WAYLAND_LAYER_SHELL_KEYBOARD_FOCUSABLE_KEY)) != 0;
+
   return window->input;
 }
 
 static gboolean
 meta_window_wayland_can_ping (MetaWindow *window)
 {
+  if (is_layer_shell_window (window))
+    return FALSE;
+
   return TRUE;
 }
 
@@ -1174,6 +1193,26 @@ meta_window_wayland_save_rect (MetaWindow *window)
 static MetaStackLayer
 meta_window_wayland_calculate_layer (MetaWindow *window)
 {
+  gpointer layer_data =
+    g_object_get_data (G_OBJECT (window),
+                       META_WAYLAND_LAYER_SHELL_STACK_LAYER_KEY);
+
+  if (layer_data)
+    {
+      MetaStackLayer layer = (MetaStackLayer) (GPOINTER_TO_INT (layer_data) - 1);
+
+      /* A wlr `top` layer surface (mapped to DOCK) must drop below a fullscreen
+       * window on its monitor so the fullscreen window is unobscured, matching
+       * the dock case in meta_window_get_default_layer. `overlay`
+       * (OVERRIDE_REDIRECT) stays above fullscreen by design; background/bottom
+       * are already below normal windows. */
+      if (layer == META_LAYER_DOCK &&
+          window->monitor && window->monitor->in_fullscreen)
+        return META_LAYER_BOTTOM;
+
+      return layer;
+    }
+
   return meta_window_get_default_layer (window);
 }
 
