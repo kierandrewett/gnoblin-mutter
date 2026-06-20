@@ -20,6 +20,7 @@
 #include "compositor/meta-surface-actor.h"
 
 #include "clutter/clutter.h"
+#include "clutter/clutter-stage-private.h"
 #include "compositor/clutter-utils.h"
 #include "compositor/meta-background-effect.h"
 #include "compositor/meta-cullable.h"
@@ -738,6 +739,9 @@ meta_surface_actor_set_input_region (MetaSurfaceActor *self,
 {
   MetaSurfaceActorPrivate *priv =
     meta_surface_actor_get_instance_private (self);
+  gboolean changed;
+
+  changed = !mtk_region_equal (priv->input_region, region);
 
   g_clear_pointer (&priv->input_region, mtk_region_unref);
 
@@ -745,6 +749,15 @@ meta_surface_actor_set_input_region (MetaSurfaceActor *self,
     priv->input_region = mtk_region_ref (region);
   else
     priv->input_region = NULL;
+
+  if (changed)
+    {
+      ClutterActor *actor = CLUTTER_ACTOR (self);
+      ClutterActor *stage = clutter_actor_get_stage (actor);
+
+      if (stage)
+        clutter_stage_maybe_invalidate_focus (CLUTTER_STAGE (stage), actor);
+    }
 }
 
 void

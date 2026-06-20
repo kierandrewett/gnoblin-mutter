@@ -115,6 +115,7 @@ void clutter_stage_unlink_grab (ClutterStage *self,
 void clutter_stage_invalidate_focus (ClutterStage *self,
                                      ClutterActor *actor);
 
+CLUTTER_EXPORT
 void clutter_stage_maybe_invalidate_focus (ClutterStage *self,
                                            ClutterActor *actor);
 
