@@ -54,6 +54,7 @@
 #include "wayland/meta-wayland-idle-inhibit.h"
 #include "wayland/meta-wayland-inhibit-shortcuts-dialog.h"
 #include "wayland/meta-wayland-inhibit-shortcuts.h"
+#include "wayland/meta-wayland-layer-shell.h"
 #include "wayland/meta-wayland-legacy-xdg-foreign.h"
 #include "wayland/meta-wayland-linux-drm-syncobj.h"
 #include "wayland/meta-wayland-outputs.h"
@@ -98,6 +99,7 @@ typedef struct _MetaWaylandCompositorPrivate
 
   MetaWaylandFilterManager *filter_manager;
   GHashTable *frame_callback_sources;
+  guint layer_shell_frame_callback_source_id;
 } MetaWaylandCompositorPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (MetaWaylandCompositor, meta_wayland_compositor,
@@ -124,6 +126,25 @@ typedef struct
 
 static void meta_wayland_compositor_update_focus (MetaWaylandCompositor *compositor,
                                                   MetaWindow            *window);
+
+static gboolean
+surface_should_emit_frame_callbacks_for_stage_view (MetaWaylandSurface *surface,
+                                                    MetaSurfaceActor   *actor,
+                                                    ClutterStageView   *stage_view)
+{
+  if (meta_surface_actor_wayland_is_view_primary (actor, stage_view))
+    return TRUE;
+
+  if (!meta_wayland_surface_is_layer_shell (surface))
+    return FALSE;
+
+  return clutter_actor_is_mapped (CLUTTER_ACTOR (actor)) &&
+         clutter_actor_is_effectively_on_stage_view (CLUTTER_ACTOR (actor),
+                                                     stage_view) &&
+         !meta_surface_actor_is_obscured_on_stage_view (actor,
+                                                        stage_view,
+                                                        NULL);
+}
 
 static gboolean
 wayland_event_source_prepare (GSource *base,
@@ -206,8 +227,9 @@ emit_frame_callbacks_for_stage_view (MetaWaylandCompositor *compositor,
         meta_wayland_surface_flush_frame_callbacks (surface);
 
       if (!should_flush_frame_callbacks &&
-          !meta_surface_actor_wayland_is_view_primary (actor,
-                                                       stage_view))
+          !surface_should_emit_frame_callbacks_for_stage_view (surface,
+                                                                actor,
+                                                                stage_view))
         continue;
 
       actor_surface = META_WAYLAND_ACTOR_SURFACE (surface->role);
@@ -217,6 +239,60 @@ emit_frame_callbacks_for_stage_view (MetaWaylandCompositor *compositor,
       compositor->frame_callback_surfaces =
         g_list_delete_link (compositor->frame_callback_surfaces, l_cur);
     }
+}
+
+static gboolean
+emit_layer_shell_frame_callbacks (gpointer user_data)
+{
+  MetaWaylandCompositor *compositor = user_data;
+  MetaWaylandCompositorPrivate *priv =
+    meta_wayland_compositor_get_instance_private (compositor);
+  GList *l;
+  int64_t now_us;
+
+  priv->layer_shell_frame_callback_source_id = 0;
+  now_us = g_get_monotonic_time ();
+
+  l = compositor->frame_callback_surfaces;
+  while (l)
+    {
+      GList *l_cur = l;
+      MetaWaylandSurface *surface = l->data;
+      MetaWaylandActorSurface *actor_surface;
+
+      l = l->next;
+
+      if (!meta_wayland_surface_is_layer_shell (surface))
+        continue;
+
+      actor_surface = META_WAYLAND_ACTOR_SURFACE (surface->role);
+      meta_wayland_actor_surface_emit_frame_callbacks (actor_surface,
+                                                       now_us / 1000);
+
+      compositor->frame_callback_surfaces =
+        g_list_delete_link (compositor->frame_callback_surfaces, l_cur);
+    }
+
+  return G_SOURCE_REMOVE;
+}
+
+static void
+schedule_layer_shell_frame_callbacks (MetaWaylandCompositor *compositor)
+{
+  MetaWaylandCompositorPrivate *priv =
+    meta_wayland_compositor_get_instance_private (compositor);
+
+  if (priv->layer_shell_frame_callback_source_id)
+    return;
+
+  priv->layer_shell_frame_callback_source_id =
+    g_timeout_add_full (G_PRIORITY_DEFAULT,
+                        16,
+                        emit_layer_shell_frame_callbacks,
+                        g_object_ref (compositor),
+                        g_object_unref);
+  g_source_set_name_by_id (priv->layer_shell_frame_callback_source_id,
+                           "[mutter] layer-shell frame callbacks");
 }
 
 static gboolean
@@ -598,6 +674,9 @@ meta_wayland_compositor_add_frame_callback_surface (MetaWaylandCompositor *compo
 
   compositor->frame_callback_surfaces =
     g_list_prepend (compositor->frame_callback_surfaces, surface);
+
+  if (meta_wayland_surface_is_layer_shell (surface))
+    schedule_layer_shell_frame_callbacks (compositor);
 }
 
 void
@@ -818,6 +897,8 @@ meta_wayland_compositor_finalize (GObject *object)
   g_clear_pointer (&compositor->seat, meta_wayland_seat_free);
   meta_wayland_tablet_manager_finalize (compositor);
 
+  g_clear_handle_id (&priv->layer_shell_frame_callback_source_id,
+                     g_source_remove);
   g_clear_pointer (&priv->filter_manager, meta_wayland_filter_manager_free);
   g_clear_pointer (&priv->frame_callback_sources, g_hash_table_destroy);
 
