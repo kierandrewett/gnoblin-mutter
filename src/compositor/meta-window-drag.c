@@ -27,6 +27,7 @@
 #include "core/window-private.h"
 #include "meta/meta-enum-types.h"
 #include "mtk/mtk.h"
+#include "core/gnoblin-native-control.h"
 
 #ifdef HAVE_XWAYLAND
 #include "x11/meta-x11-frame.h"
@@ -1990,6 +1991,13 @@ meta_window_drag_begin (MetaWindowDrag      *window_drag,
     grab_window = get_first_freefloating_window (window);
 
   meta_window_get_frame_rect (grab_window, &window_drag->drag_rect);
+
+  /* Snapshot the supervisor-owned policy per grab so reloads do not make an
+   * in-flight pointer operation jump. */
+  window_drag->constrain_drag_to_work_area =
+    gnoblin_native_control_is_session (display) &&
+    gnoblin_native_control_get_config_bool (
+      display, "window-management", "constrain-drag-to-work-area", TRUE);
 
   if ((grab_op & META_GRAB_OP_KEYBOARD_MOVING) == META_GRAB_OP_KEYBOARD_MOVING)
     {
