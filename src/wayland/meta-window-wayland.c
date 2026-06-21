@@ -1828,6 +1828,9 @@ meta_window_wayland_finish_move_resize (MetaWindow              *window,
 
   if (place_flags & META_PLACE_FLAG_CALCULATE)
     window->placed = TRUE;
+
+  if (window->hidden && meta_wayland_surface_get_buffer (surface))
+    meta_window_update_visibility (window);
 }
 
 void
