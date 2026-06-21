@@ -631,6 +631,22 @@ maybe_update_modifiers_from_keymap (MetaWaylandKeyboard *keyboard)
 }
 
 static gboolean
+maybe_update_modifiers_from_xkb_state (MetaWaylandKeyboard *keyboard)
+{
+  MetaWaylandXkbInfo *xkb_info = &keyboard->xkb_info;
+  ClutterModifierType pressed, locked, latched;
+
+  pressed = xkb_state_serialize_mods (xkb_info->state,
+                                      XKB_STATE_MODS_DEPRESSED);
+  latched = xkb_state_serialize_mods (xkb_info->state,
+                                      XKB_STATE_MODS_LATCHED);
+  locked = xkb_state_serialize_mods (xkb_info->state,
+                                     XKB_STATE_MODS_LOCKED);
+
+  return maybe_update_modifiers (keyboard, pressed, latched, locked);
+}
+
+static gboolean
 maybe_update_modifiers_from_event (MetaWaylandKeyboard *keyboard,
                                    const ClutterEvent  *event)
 {
@@ -720,7 +736,7 @@ meta_wayland_keyboard_handle_event (MetaWaylandKeyboard   *keyboard,
                   "No wayland surface is focused, continuing normal operation");
     }
 
-  if (maybe_update_modifiers_from_keymap (keyboard))
+  if (maybe_update_modifiers_from_xkb_state (keyboard))
     notify_modifiers (keyboard);
 
   return handled;
