@@ -527,7 +527,8 @@ meta_context_terminate (MetaContext *context)
   g_return_if_fail (META_IS_CONTEXT (context));
 
   g_warn_if_fail (priv->state == META_CONTEXT_STATE_RUNNING);
-  g_warn_if_fail (g_main_loop_is_running (priv->main_loop));
+  if (!priv->main_loop || !g_main_loop_is_running (priv->main_loop))
+    return;
 
   g_main_loop_quit (priv->main_loop);
 }
