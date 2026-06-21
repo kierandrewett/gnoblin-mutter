@@ -253,10 +253,10 @@ pointer_handle_enter (void              *user_data,
   WaylandDisplay *display = user_data;
   WaylandSurface *surface = wl_surface_get_user_data (surface_resource);
 
-  display->pointer_focus = surface;
-
   if (!surface)
     return;
+
+  display->pointer_focus = surface;
 
   g_signal_emit (surface, surface_signals[SURFACE_POINTER_ENTER],
                  0, pointer, serial);
@@ -337,11 +337,11 @@ wl_keyboard_enter (void               *user_data,
   WaylandDisplay *display = user_data;
   WaylandSurface *surface = wl_surface_get_user_data (surface_resource);
 
-  display->last_input_serial = serial;
-  display->keyboard_focus = surface;
-
   if (!surface)
     return;
+
+  display->last_input_serial = serial;
+  display->keyboard_focus = surface;
 
   g_signal_emit (surface, surface_signals[SURFACE_KEYBOARD_ENTER],
                  0, keyboard, serial);
