@@ -195,6 +195,9 @@ find_nearest_position (const GArray       *edges,
   int best, best_dist, i;
   gboolean edges_align;
 
+  if (!edges || edges->len == 0)
+    return position;
+
   /* Initialize mid, edge, & compare in the off change that the array only
    * has one element.
    */
@@ -336,6 +339,9 @@ apply_edge_resistance (MetaWindow         *window,
 
   /* Quit if no movement was specified */
   if (old_pos == new_pos)
+    return new_pos;
+
+  if (!edges || edges->len == 0)
     return new_pos;
 
   /* Get the range of indices in the edge array that we move past/to. */
