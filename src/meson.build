@@ -586,6 +586,28 @@ mutter_sources += [
   'wayland/meta-wayland-seat.h',
   'wayland/meta-wayland-shell-surface.c',
   'wayland/meta-wayland-shell-surface.h',
+  # gnoblin: extra wlr-/ext- protocols (sources copied from gnoblin overlays
+  # at build time; registered via meta_gnoblin_init_protocols)
+  'wayland/meta-gnoblin-protocols.c',
+  'wayland/meta-gnoblin-protocols.h',
+  'wayland/meta-wayland-idle-notify.c',
+  'wayland/meta-wayland-idle-notify.h',
+  'wayland/meta-wayland-foreign-toplevel-common.c',
+  'wayland/meta-wayland-foreign-toplevel-common.h',
+  'wayland/meta-wayland-foreign-toplevel-list.c',
+  'wayland/meta-wayland-foreign-toplevel-list.h',
+  'wayland/meta-wayland-foreign-toplevel-management.c',
+  'wayland/meta-wayland-foreign-toplevel-management.h',
+  'wayland/meta-wayland-gamma-control.c',
+  'wayland/meta-wayland-gamma-control.h',
+  'wayland/meta-wayland-output-power-management.c',
+  'wayland/meta-wayland-output-power-management.h',
+  'wayland/meta-wayland-data-control.c',
+  'wayland/meta-wayland-data-control.h',
+  'wayland/meta-wayland-session-lock.c',
+  'wayland/meta-wayland-session-lock.h',
+  'wayland/meta-wayland-session-lock-surface.c',
+  'wayland/meta-wayland-session-lock-surface.h',
   'wayland/meta-wayland-single-pixel-buffer.c',
   'wayland/meta-wayland-single-pixel-buffer.h',
   'wayland/meta-wayland-subsurface.c',
@@ -1049,6 +1071,14 @@ wayland_protocols = [
   ['xdg-system-bell', 'staging', 1, ],
   ['xdg-toplevel-drag', 'staging', 1, ],
   ['xdg-toplevel-tag', 'staging', 1, ],
+  # gnoblin: vendored wlr-/ext- protocols (overlay src/wayland/protocol/)
+  ['ext-idle-notify-v1', 'private', ],
+  ['ext-foreign-toplevel-list-v1', 'private', ],
+  ['wlr-foreign-toplevel-management-unstable-v1', 'private', ],
+  ['wlr-gamma-control-unstable-v1', 'private', ],
+  ['wlr-output-power-management-unstable-v1', 'private', ],
+  ['ext-data-control-v1', 'private', ],
+  ['ext-session-lock-v1', 'private', ],
 ]
 
 if have_xwayland

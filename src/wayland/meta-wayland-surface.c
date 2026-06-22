@@ -39,6 +39,7 @@
 #include "wayland/meta-wayland-buffer.h"
 #include "wayland/meta-wayland-client-private.h"
 #include "wayland/meta-wayland-color-representation.h"
+#include "wayland/meta-gnoblin-protocols.h"
 #include "wayland/meta-wayland-fractional-scale.h"
 #include "wayland/meta-wayland-gtk-shell.h"
 #include "wayland/meta-wayland-layer-shell.h"
@@ -1914,6 +1915,7 @@ void
 meta_wayland_shell_init (MetaWaylandCompositor *compositor)
 {
   meta_wayland_xdg_shell_init (compositor);
+  meta_gnoblin_init_protocols (compositor);
   meta_wayland_init_gtk_shell (compositor);
   meta_wayland_init_layer_shell (compositor);
   meta_wayland_init_viewporter (compositor);
