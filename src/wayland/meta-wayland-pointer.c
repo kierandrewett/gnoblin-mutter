@@ -1126,6 +1126,9 @@ meta_wayland_pointer_set_focus (MetaWaylandPointer *pointer,
   ClutterBackend *clutter_backend = meta_backend_get_clutter_backend (backend);
   ClutterSeat *clutter_seat = clutter_backend_get_default_seat (clutter_backend);
   MetaWindow *toplevel_window;
+  struct wl_client *old_client = NULL;
+  struct wl_client *new_client = NULL;
+  gboolean client_changed;
 
   g_return_if_fail (meta_cursor_tracker_get_pointer_visible (cursor_tracker) ||
                     clutter_seat_is_unfocus_inhibited (clutter_seat) ||
@@ -1133,6 +1136,20 @@ meta_wayland_pointer_set_focus (MetaWaylandPointer *pointer,
 
   if (pointer->focus_surface == surface)
     return;
+
+  if (pointer->focus_surface && pointer->focus_surface->resource)
+    old_client = wl_resource_get_client (pointer->focus_surface->resource);
+  if (surface && surface->resource)
+    new_client = wl_resource_get_client (surface->resource);
+  client_changed = old_client != new_client;
+
+  if (client_changed && pointer->button_count == 0)
+    {
+      meta_wayland_pointer_set_cursor_surface (pointer, NULL);
+      pointer->cursor_shape = CLUTTER_CURSOR_INHERIT;
+      pointer->cursor_source = CURSOR_SOURCE_UNSET;
+      clutter_sprite_invalidate_cursor (pointer->sprite);
+    }
 
   pointer->last_rel_x = -FLT_MAX;
   pointer->last_rel_y = -FLT_MAX;
@@ -1246,6 +1263,9 @@ meta_wayland_pointer_get_cursor (MetaWaylandPointer *pointer)
   g_autoptr (ClutterCursor) cursor = NULL;
 
   surface = pointer->focus_surface;
+
+  if (!pointer->current && pointer->button_count == 0)
+    surface = NULL;
 
   if (surface)
     {
