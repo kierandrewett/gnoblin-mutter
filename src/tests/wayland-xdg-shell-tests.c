@@ -19,6 +19,8 @@
 
 #include "backends/meta-cursor-tracker-private.h"
 #include "backends/meta-logical-monitor-private.h"
+#include "compositor/compositor-private.h"
+#include "compositor/meta-window-drag.h"
 #include "core/meta-workspace-manager-private.h"
 #include "core/window-private.h"
 #include "tests/meta-ref-test.h"
@@ -569,6 +571,7 @@ toplevel_focus_changes_remembers_size (void)
 {
   GSettings *settings;
   MetaWindow *window;
+  MetaWindow *window2;
   MetaWindowWayland *wl_window;
   MtkRectangle rect;
   MetaTestClient *test_client;
@@ -595,6 +598,7 @@ toplevel_focus_changes_remembers_size (void)
       g_assert_no_error (error);
       g_main_context_iteration (NULL, TRUE);
     }
+  g_object_add_weak_pointer (G_OBJECT (window), (gpointer *) &window);
   wl_window = META_WINDOW_WAYLAND (window);
   while (meta_window_is_hidden (window))
     g_main_context_iteration (NULL, TRUE);
@@ -627,6 +631,12 @@ toplevel_focus_changes_remembers_size (void)
 
   while (meta_window_appears_focused (window))
     g_main_context_iteration (NULL, TRUE);
+
+  window2 = meta_test_client_find_window (test_client, "2", &error);
+  g_assert_no_error (error);
+  g_assert_nonnull (window2);
+  g_object_add_weak_pointer (G_OBJECT (window2), (gpointer *) &window2);
+
   g_assert_true (meta_window_wayland_get_pending_serial (wl_window, &serial));
   pending_configuration =
     meta_window_wayland_peek_configuration (wl_window, serial);
@@ -640,6 +650,9 @@ toplevel_focus_changes_remembers_size (void)
   g_assert_cmpint (rect.width, ==, 200);
   g_assert_cmpint (rect.height, ==, 200);
   meta_test_client_destroy (test_client);
+
+  while (window || window2)
+    g_main_context_iteration (NULL, TRUE);
 }
 
 static void
@@ -652,6 +665,7 @@ toplevel_begin_interactive_resize (void)
   g_autoptr (ClutterVirtualInputDevice) virtual_pointer = NULL;
   ClutterSprite *pointer_sprite;
   GSettings *settings;
+  MetaWindowDrag *window_drag;
   MetaWindow *window;
   MetaWindowWayland *wl_window;
   MtkRectangle rect;
@@ -686,6 +700,7 @@ toplevel_begin_interactive_resize (void)
       g_assert_no_error (error);
       g_main_context_iteration (NULL, TRUE);
     }
+  g_object_add_weak_pointer (G_OBJECT (window), (gpointer *) &window);
   wl_window = META_WINDOW_WAYLAND (window);
   while (meta_window_is_hidden (window))
     g_main_context_iteration (NULL, TRUE);
@@ -738,9 +753,17 @@ toplevel_begin_interactive_resize (void)
   g_assert_cmpint (rect.width, ==, 210);
   g_assert_cmpint (rect.height, ==, 200);
 
+  window_drag =
+    meta_compositor_get_current_window_drag (window->display->compositor);
+  g_assert_nonnull (window_drag);
+  g_assert_true (meta_window_drag_get_window (window_drag) == window);
+  meta_window_drag_end (window_drag);
 
   meta_test_client_destroy (test_client);
   g_clear_object (&virtual_pointer);
+
+  while (window)
+    g_main_context_iteration (NULL, TRUE);
 }
 
 static void
