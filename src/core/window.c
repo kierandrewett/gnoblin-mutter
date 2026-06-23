@@ -2242,6 +2242,12 @@ window_would_mostly_be_covered_by_always_above_window (MetaWindow *window)
   frame_rect = meta_window_config_get_rect (window->config);
   window_area = frame_rect.width * frame_rect.height;
 
+  /* A window with no area (e.g. a layer-shell surface being focused before it
+   * has been allocated a size) cannot be "mostly covered" — and dividing by a
+   * zero area below is a SIGFPE. Treat it as not covered. */
+  if (window_area <= 0)
+    return FALSE;
+
   mtk_region_intersect_rectangle (region, &frame_rect);
   intersection_area = calculate_region_area (region);
   visible_area = window_area - intersection_area;
