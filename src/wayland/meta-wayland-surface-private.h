@@ -185,6 +185,7 @@ struct _MetaWaylandSurface
   MetaWaylandClient *client;
   MetaWaylandCompositor *compositor;
   MetaWaylandSurfaceRole *role;
+  GList *frame_callback_surface_link;
   MtkRegion *input_region;
   MtkRegion *opaque_region;
   MtkRegion *background_blur_region;

@@ -238,6 +238,7 @@ emit_frame_callbacks_for_stage_view (MetaWaylandCompositor *compositor,
 
       compositor->frame_callback_surfaces =
         g_list_delete_link (compositor->frame_callback_surfaces, l_cur);
+      surface->frame_callback_surface_link = NULL;
     }
 }
 
@@ -271,6 +272,7 @@ emit_layer_shell_frame_callbacks (gpointer user_data)
 
       compositor->frame_callback_surfaces =
         g_list_delete_link (compositor->frame_callback_surfaces, l_cur);
+      surface->frame_callback_surface_link = NULL;
     }
 
   return G_SOURCE_REMOVE;
@@ -669,11 +671,12 @@ void
 meta_wayland_compositor_add_frame_callback_surface (MetaWaylandCompositor *compositor,
                                                     MetaWaylandSurface    *surface)
 {
-  if (g_list_find (compositor->frame_callback_surfaces, surface))
+  if (surface->frame_callback_surface_link)
     return;
 
-  compositor->frame_callback_surfaces =
+  surface->frame_callback_surface_link =
     g_list_prepend (compositor->frame_callback_surfaces, surface);
+  compositor->frame_callback_surfaces = surface->frame_callback_surface_link;
 
   if (meta_wayland_surface_is_layer_shell (surface))
     schedule_layer_shell_frame_callbacks (compositor);
@@ -683,8 +686,13 @@ void
 meta_wayland_compositor_remove_frame_callback_surface (MetaWaylandCompositor *compositor,
                                                        MetaWaylandSurface    *surface)
 {
+  if (!surface->frame_callback_surface_link)
+    return;
+
   compositor->frame_callback_surfaces =
-    g_list_remove (compositor->frame_callback_surfaces, surface);
+    g_list_delete_link (compositor->frame_callback_surfaces,
+                        surface->frame_callback_surface_link);
+  surface->frame_callback_surface_link = NULL;
 }
 
 void
