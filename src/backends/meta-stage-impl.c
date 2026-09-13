@@ -416,7 +416,9 @@ paint_stage (MetaStageImpl    *stage_impl,
   ClutterStage *stage = stage_impl->wrapper;
 
   _clutter_stage_maybe_setup_viewport (stage, stage_view);
+  clutter_stage_view_set_paint_redraw_clip (stage_view, redraw_clip);
   clutter_stage_paint_view (stage, stage_view, redraw_clip, frame);
+  clutter_stage_view_clear_paint_redraw_clip (stage_view);
 
   clutter_stage_view_after_paint (stage_view, redraw_clip);
 }

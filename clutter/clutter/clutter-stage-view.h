@@ -94,3 +94,18 @@ MtkMonitorTransform clutter_stage_view_get_transform (ClutterStageView *view);
 
 CLUTTER_EXPORT
 int clutter_stage_view_get_priority (ClutterStageView *view);
+
+/* Effect dependencies use stage coordinates, before buffer-age repair. */
+CLUTTER_EXPORT
+MtkRegion * clutter_stage_view_copy_redraw_clip (ClutterStageView *view);
+
+CLUTTER_EXPORT
+void clutter_stage_view_set_paint_redraw_clip (ClutterStageView *view,
+                                               const MtkRegion   *redraw_clip);
+
+CLUTTER_EXPORT
+void clutter_stage_view_clear_paint_redraw_clip (ClutterStageView *view);
+
+CLUTTER_EXPORT
+void clutter_stage_view_add_redraw_clip (ClutterStageView *view,
+                                         const MtkRectangle *clip);

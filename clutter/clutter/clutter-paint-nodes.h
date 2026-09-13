@@ -183,4 +183,22 @@ ClutterPaintNode * clutter_blur_node_new (unsigned int width,
                                           unsigned int height,
                                           float        radius);
 
+/* Reusable GPU resources; paint nodes remain frame-local. */
+#define CLUTTER_TYPE_BLUR_CACHE (clutter_blur_cache_get_type ())
+CLUTTER_EXPORT
+G_DECLARE_FINAL_TYPE (ClutterBlurCache, clutter_blur_cache,
+                      CLUTTER, BLUR_CACHE, GObject)
+
+CLUTTER_EXPORT
+ClutterBlurCache * clutter_blur_cache_new (void);
+
+CLUTTER_EXPORT
+unsigned int clutter_blur_cache_get_build_count (ClutterBlurCache *cache);
+
+CLUTTER_EXPORT
+ClutterPaintNode * clutter_blur_node_new_cached (unsigned int      width,
+                                                unsigned int      height,
+                                                float             radius,
+                                                ClutterBlurCache *cache);
+
 G_END_DECLS

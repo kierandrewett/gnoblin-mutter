@@ -46,10 +46,6 @@ void clutter_stage_view_invalidate_projection (ClutterStageView *view);
 void clutter_stage_view_set_projection (ClutterStageView        *view,
                                         const graphene_matrix_t *matrix);
 
-CLUTTER_EXPORT
-void clutter_stage_view_add_redraw_clip (ClutterStageView   *view,
-                                         const MtkRectangle *clip);
-
 gboolean clutter_stage_view_has_full_redraw_clip (ClutterStageView *view);
 
 CLUTTER_EXPORT

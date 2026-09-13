@@ -92,6 +92,8 @@ typedef struct _ClutterStageViewPrivate
   MtkRegion *redraw_clip;
   gboolean has_accumulated_redraw_clip;
   MtkRegion *accumulated_redraw_clip;
+  gboolean painting;
+  const MtkRegion *paint_redraw_clip;
 
   float refresh_rate;
   int64_t vblank_duration_us;
@@ -1506,3 +1508,54 @@ clutter_stage_view_get_name (ClutterStageView *view)
 
   return priv->name;
 }
+
+/**
+ * clutter_stage_view_copy_redraw_clip:
+ * @view: a #ClutterStageView
+ *
+ * Returns queued scene damage before buffer-age repair is applied.
+ *
+ * Returns: (transfer full): damage in stage coordinates
+ */
+MtkRegion *
+clutter_stage_view_copy_redraw_clip (ClutterStageView *view)
+{
+  ClutterStageViewPrivate *priv = clutter_stage_view_get_instance_private (view);
+  MtkRegion *region;
+
+  if (priv->painting)
+    {
+      if (priv->paint_redraw_clip)
+        return mtk_region_copy ((MtkRegion *) priv->paint_redraw_clip);
+      return mtk_region_create_rectangle (&priv->layout);
+    }
+
+  if ((priv->has_redraw_clip && !priv->redraw_clip) ||
+      (priv->has_accumulated_redraw_clip && !priv->accumulated_redraw_clip))
+    return mtk_region_create_rectangle (&priv->layout);
+
+  region = priv->redraw_clip ? mtk_region_copy (priv->redraw_clip) : mtk_region_create ();
+  if (priv->accumulated_redraw_clip)
+    mtk_region_union (region, priv->accumulated_redraw_clip);
+  return region;
+}
+
+void
+clutter_stage_view_set_paint_redraw_clip (ClutterStageView *view,
+                                          const MtkRegion   *redraw_clip)
+{
+  ClutterStageViewPrivate *priv = clutter_stage_view_get_instance_private (view);
+
+  priv->painting = TRUE;
+  priv->paint_redraw_clip = redraw_clip;
+}
+
+void
+clutter_stage_view_clear_paint_redraw_clip (ClutterStageView *view)
+{
+  ClutterStageViewPrivate *priv = clutter_stage_view_get_instance_private (view);
+
+  priv->paint_redraw_clip = NULL;
+  priv->painting = FALSE;
+}
+
