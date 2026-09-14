@@ -253,6 +253,13 @@ meta_window_actor_x11_get_scanout_candidate (MetaWindowActor *actor)
       return NULL;
     }
 
+  if (meta_gnoblin_window_effects_has_window_shadow (CLUTTER_ACTOR (actor)))
+    {
+      meta_topic (META_DEBUG_RENDER,
+                  "Window has a Gnoblin replacement shadow");
+      return NULL;
+    }
+
   if (CLUTTER_ACTOR (surface_actor) !=
       clutter_actor_get_last_child (CLUTTER_ACTOR (actor)))
     {
@@ -379,6 +386,10 @@ has_shadow (MetaWindowActorX11 *actor_x11)
   MetaWindowX11 *x11_window = META_WINDOW_X11 (window);
   MetaWindowX11Private *priv =
     meta_window_x11_get_private (x11_window);
+
+  if (meta_gnoblin_window_effects_has_window_shadow (
+        CLUTTER_ACTOR (actor_x11)))
+    return FALSE;
 
   /* Leaving out shadows for maximized and fullscreen windows is an efficiency
    * win and also prevents the unsightly effect of the shadow of maximized

@@ -359,6 +359,13 @@ meta_window_actor_wayland_get_scanout_candidate (MetaWindowActor *actor)
   ClutterActorBox window_box;
   ClutterActorBox surface_box;
 
+  if (meta_gnoblin_window_effects_has_window_shadow (CLUTTER_ACTOR (actor)))
+    {
+      meta_topic (META_DEBUG_RENDER,
+                  "Window has a Gnoblin replacement shadow");
+      return NULL;
+    }
+
   if (clutter_actor_get_last_child (CLUTTER_ACTOR (self)) != surface_container)
     {
       meta_topic (META_DEBUG_RENDER,
@@ -689,6 +696,39 @@ meta_window_actor_wayland_set_csd_reconstruction (MetaWindowActor *actor,
   self = META_WINDOW_ACTOR_WAYLAND (actor);
   meta_gnoblin_window_effects_set_csd_reconstruction (
     CLUTTER_ACTOR (self->surface_container), enabled, insets);
+}
+
+gboolean
+meta_window_actor_wayland_get_surface_container_bounds (MetaWindowActor *actor,
+                                                        double           bounds[4])
+{
+  MetaWindowActorWayland *self;
+  ClutterActorBox box;
+
+  g_return_val_if_fail (META_IS_WINDOW_ACTOR_WAYLAND (actor), FALSE);
+  g_return_val_if_fail (bounds != NULL, FALSE);
+
+  self = META_WINDOW_ACTOR_WAYLAND (actor);
+  if (!clutter_actor_has_allocation (CLUTTER_ACTOR (self->surface_container)))
+    return FALSE;
+
+  clutter_actor_get_allocation_box (CLUTTER_ACTOR (self->surface_container), &box);
+  bounds[0] = box.x1;
+  bounds[1] = box.y1;
+  bounds[2] = box.x2;
+  bounds[3] = box.y2;
+  return TRUE;
+}
+
+guint
+meta_window_actor_wayland_get_shadow_child_index (MetaWindowActor *actor)
+{
+  MetaWindowActorWayland *self;
+
+  g_return_val_if_fail (META_IS_WINDOW_ACTOR_WAYLAND (actor), 0);
+
+  self = META_WINDOW_ACTOR_WAYLAND (actor);
+  return self->background ? 1 : 0;
 }
 
 static void

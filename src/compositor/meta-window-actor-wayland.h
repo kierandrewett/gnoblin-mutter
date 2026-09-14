@@ -45,3 +45,8 @@ void meta_window_actor_wayland_set_rounded_clip (MetaWindowActor *actor,
 void meta_window_actor_wayland_set_csd_reconstruction (MetaWindowActor *actor,
                                                        gboolean         enabled,
                                                        const double     insets[4]);
+
+gboolean meta_window_actor_wayland_get_surface_container_bounds (MetaWindowActor *actor,
+                                                                 double           bounds[4]);
+
+guint meta_window_actor_wayland_get_shadow_child_index (MetaWindowActor *actor);
