@@ -2216,6 +2216,8 @@ gnoblin_native_typed_window_operation (MetaDisplay *display,
         }
       meta_window_minimize (window);
     }
+  else if (g_str_equal (method, "window.unminimize"))
+    meta_window_unminimize (window);
   else if (g_str_equal (method, "window.toggle_minimize"))
     {
       gboolean minimized = FALSE;
@@ -2354,6 +2356,7 @@ meta_gnoblin_dispatch_native_api (MetaDisplay *display,
     "window.close",
     "window.minimize",
     "window.toggle_minimize",
+    "window.unminimize",
     "window.restore",
     "window.set_maximized",
     "window.set_fullscreen",
