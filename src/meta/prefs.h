@@ -109,6 +109,18 @@ typedef void (* MetaPrefsChangedFunc) (MetaPreference pref,
                                        gpointer       user_data);
 
 META_EXPORT
+void meta_prefs_apply_gnoblin_window_preferences (GVariant *preferences);
+
+META_EXPORT
+void meta_prefs_apply_gnoblin_compositor_preferences (GVariant *preferences);
+
+META_EXPORT
+void meta_prefs_apply_gnoblin_keyboard_preferences (GVariant *preferences);
+
+META_EXPORT
+void meta_prefs_apply_gnoblin_keybindings (GVariant *keybindings);
+
+META_EXPORT
 void meta_prefs_add_listener    (MetaPrefsChangedFunc func,
                                  gpointer             user_data);
 
