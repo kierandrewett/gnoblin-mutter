@@ -2285,13 +2285,15 @@ gnoblin_native_typed_window_operation (MetaDisplay *display,
       gint64 x, y;
       g_variant_lookup (arguments, "x", "x", &x);
       g_variant_lookup (arguments, "y", "x", &y);
-      if (!meta_window_allows_move (window))
+      if (!meta_window_allows_move (window) ||
+          meta_window_is_fullscreen (window) ||
+          meta_window_get_maximize_flags (window) != META_MAXIMIZE_NONE)
         {
           g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_FAILED,
-                               "window cannot be moved");
+                               "window cannot move; unmaximize or leave fullscreen first");
           return NULL;
         }
-      meta_window_move_frame (window, FALSE, (int) x, (int) y);
+      meta_window_move_frame (window, TRUE, (int) x, (int) y);
     }
   else if (g_str_equal (method, "window.resize"))
     {
