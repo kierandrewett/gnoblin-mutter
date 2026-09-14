@@ -22,9 +22,11 @@
 #include "wayland/meta-wayland-activation.h"
 #include "core/util-private.h"
 #include "meta/prefs.h"
+#include "wayland/meta-wayland-session-lock.h"
 
 #include <glib.h>
 #include <wayland-server.h>
+#include <sys/types.h>
 
 #include "wayland/meta-wayland-private.h"
 #include "wayland/meta-wayland-versions.h"
@@ -52,9 +54,11 @@ struct _MetaXdgActivationToken
   char *app_id;
   char *token;
   uint32_t serial;
+  pid_t requesting_pid;
   gulong sequence_complete_id;
   gulong sequence_timeout_id;
   gboolean committed;
+  gboolean consumed;
 };
 
 static MetaDisplay *
@@ -159,6 +163,8 @@ token_commit (struct wl_client   *client,
   MetaWaylandActivation *activation = token->activation;
   MetaDisplay *display = display_from_activation (activation);
   uint64_t timestamp;
+  uid_t uid;
+  gid_t gid;
 
   if (token->committed)
     {
@@ -169,6 +175,8 @@ token_commit (struct wl_client   *client,
     }
 
   timestamp = meta_display_get_current_time_roundtrip (display);
+
+  wl_client_get_credentials (client, &token->requesting_pid, &uid, &gid);
 
   token->committed = TRUE;
   token->token = create_startup_token (activation, display);
@@ -310,6 +318,46 @@ token_can_activate (MetaXdgActivationToken *token)
                                           token->serial,
                                           FALSE,
                                           NULL, NULL, NULL);
+}
+
+gboolean
+meta_wayland_activation_focus_window_with_token (MetaWaylandCompositor *compositor,
+                                                 MetaWindow            *window,
+                                                 const char            *token_str,
+                                                 pid_t                  peer_pid)
+{
+  MetaWaylandActivation *activation;
+  MetaXdgActivationToken *token;
+  uint32_t timestamp;
+  gboolean seat_valid;
+  gboolean unlocked;
+
+  if (!compositor || !window || !token_str || peer_pid <= 0 ||
+      window->unmanaging || !window->mapped)
+    return FALSE;
+
+  activation = compositor->activation;
+  if (!activation)
+    return FALSE;
+
+  token = g_hash_table_lookup (activation->tokens, token_str);
+  if (!token || token->consumed || token->requesting_pid != peer_pid)
+    return FALSE;
+
+  /* Consume the proof before any focus side effect. Completing the startup
+   * sequence removes the token from the table, so it cannot be replayed. */
+  token->consumed = TRUE;
+  timestamp = meta_startup_sequence_get_timestamp (token->sequence);
+  seat_valid = token_can_activate (token);
+  unlocked = !meta_wayland_session_lock_is_active (compositor);
+  meta_startup_sequence_complete (token->sequence);
+
+  if (!seat_valid || !unlocked)
+    return FALSE;
+
+  meta_window_activate_full (window, timestamp,
+                             META_CLIENT_TYPE_APPLICATION, NULL);
+  return TRUE;
 }
 
 static gboolean

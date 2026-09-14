@@ -22,10 +22,17 @@
 #pragma once
 
 #include <glib.h>
+#include <sys/types.h>
 #include <wayland-server.h>
 
+#include "meta/types.h"
 #include "wayland/meta-wayland-types.h"
 
 void meta_wayland_activation_finalize (MetaWaylandCompositor *compositor);
 
 void meta_wayland_activation_init (MetaWaylandCompositor *compositor);
+
+gboolean meta_wayland_activation_focus_window_with_token (MetaWaylandCompositor *compositor,
+                                                         MetaWindow            *window,
+                                                         const char            *token,
+                                                         pid_t                  peer_pid);
