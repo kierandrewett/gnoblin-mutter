@@ -878,6 +878,7 @@ update_touchpad_disable_while_typing (MetaInputSettings  *input_settings,
   MetaInputSettingsPrivate *priv;
   gboolean enabled;
   uint32_t timeout_ms;
+  g_autoptr (GVariant) timeout_override = NULL;
   const char *key_dwt = "disable-while-typing";
   const char *key_timeout = "disable-while-typing-timeout";
 
@@ -890,9 +891,13 @@ update_touchpad_disable_while_typing (MetaInputSettings  *input_settings,
   priv = meta_input_settings_get_instance_private (input_settings);
   input_settings_class = META_INPUT_SETTINGS_GET_CLASS (input_settings);
   enabled = input_get_boolean (input_settings, priv->touchpad_settings, key_dwt);
-  timeout_ms = input_settings_has_key (input_settings, priv->touchpad_settings, key_timeout)
-               ? g_settings_get_uint (priv->touchpad_settings, key_timeout)
-               : 0;
+  timeout_override = gnoblin_setting (input_settings, priv->touchpad_settings, key_timeout);
+  if (timeout_override)
+    timeout_ms = g_variant_get_uint32 (timeout_override);
+  else
+    timeout_ms = input_settings_has_key (input_settings, priv->touchpad_settings, key_timeout)
+                 ? g_settings_get_uint (priv->touchpad_settings, key_timeout)
+                 : 0;
 
   if (device)
     {
