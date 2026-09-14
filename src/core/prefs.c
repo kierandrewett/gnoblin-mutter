@@ -1497,6 +1497,10 @@ settings_changed (GSettings *settings,
     return;
   if (is_gnoblin_session () && gnoblin_owns_compositor_preference (key))
     return;
+  if (is_gnoblin_session () && settings == SETTINGS (SCHEMA_INTERFACE) &&
+      (g_str_equal (key, KEY_GNOME_CURSOR_THEME) ||
+       g_str_equal (key, KEY_GNOME_CURSOR_SIZE)))
+    return;
   if (is_gnoblin_session () && gnoblin_drag_threshold_configured &&
       settings == SETTINGS (SCHEMA_MOUSE) && g_str_equal (key, "drag-threshold"))
     return;
