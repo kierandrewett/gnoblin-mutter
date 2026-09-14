@@ -297,6 +297,10 @@ gnoblin_setting (MetaInputSettings *input_settings,
     group = "mouse";
   else if (settings == priv->touchpad_settings)
     group = "touchpad";
+  else if (settings == priv->trackball_settings)
+    group = "trackball";
+  else if (settings == priv->pointing_stick_settings)
+    group = "pointing-stick";
   else if (settings == priv->keyboard_settings)
     group = "keyboard";
   else if ((selector = g_object_get_qdata (G_OBJECT (settings), quark_gnoblin_settings_selector)))
@@ -460,6 +464,9 @@ input_get_enum (MetaInputSettings *input_settings,
           const char *nick = g_variant_get_string (value, NULL);
           const char * const *nicks = NULL;
           static const char * const accel[] = { "default", "flat", "adaptive", "custom", NULL };
+          static const char * const pointing_stick_scroll[] = {
+            "default", "none", "on-button-down", NULL
+          };
           static const char * const handed[] = { "right", "left", "mouse", NULL };
           static const char * const tap_map[] = { "default", "lrm", "lmr", NULL };
           static const char * const click[] = { "default", "none", "areas", "fingers", NULL };
@@ -474,6 +481,9 @@ input_get_enum (MetaInputSettings *input_settings,
 
           if (g_str_equal (key, "accel-profile"))
             nicks = accel;
+          else if (settings == priv->pointing_stick_settings &&
+                   g_str_equal (key, "scroll-method"))
+            nicks = pointing_stick_scroll;
           else if (g_str_equal (key, "left-handed"))
             nicks = handed;
           else if (g_str_equal (key, "tap-button-map"))
@@ -498,7 +508,9 @@ input_get_enum (MetaInputSettings *input_settings,
           /* Avoid applying an enum string to unrelated settings that happen
            * to share a key name. */
           if (!selector && settings != priv->mouse_settings &&
-              settings != priv->touchpad_settings)
+              settings != priv->touchpad_settings &&
+              settings != priv->trackball_settings &&
+              settings != priv->pointing_stick_settings)
             result = input_settings_has_key (input_settings, settings, key)
                      ? g_settings_get_enum (settings, key)
                      : 0;
