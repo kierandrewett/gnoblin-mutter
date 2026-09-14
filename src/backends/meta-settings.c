@@ -65,6 +65,8 @@ struct _MetaSettings
 
   int ui_scaling_factor;
   int global_scaling_factor;
+  gboolean gnoblin_global_scaling_factor_overridden;
+  int gnoblin_global_scaling_factor;
 
   int font_dpi;
 
@@ -145,8 +147,10 @@ update_global_scaling_factor (MetaSettings *settings)
   int global_scaling_factor;
 
   global_scaling_factor =
-    (int) g_settings_get_uint (settings->interface_settings,
-                               "scaling-factor");
+    settings->gnoblin_global_scaling_factor_overridden
+      ? settings->gnoblin_global_scaling_factor
+      : (int) g_settings_get_uint (settings->interface_settings,
+                                   "scaling-factor");
 
   if (settings->global_scaling_factor != global_scaling_factor)
     {
@@ -168,6 +172,46 @@ meta_settings_get_global_scaling_factor (MetaSettings *settings,
 
   *out_scaling_factor = settings->global_scaling_factor;
   return TRUE;
+}
+
+void
+meta_settings_apply_gnoblin_monitor_preferences (MetaSettings *settings,
+                                                 GVariant     *preferences)
+{
+  g_autoptr (GVariant) scale_value = NULL;
+
+  g_return_if_fail (META_IS_SETTINGS (settings));
+  g_return_if_fail (!preferences ||
+                    g_variant_is_of_type (preferences, G_VARIANT_TYPE_VARDICT));
+
+  settings->gnoblin_global_scaling_factor_overridden = FALSE;
+  if (preferences)
+    scale_value = g_variant_lookup_value (preferences, "global-scale", NULL);
+
+  if (scale_value &&
+      g_variant_is_of_type (scale_value, G_VARIANT_TYPE_INT64))
+    {
+      gint64 requested_scale = g_variant_get_int64 (scale_value);
+
+      if (requested_scale >= 0 && requested_scale <= 4)
+        {
+          settings->gnoblin_global_scaling_factor_overridden = TRUE;
+          settings->gnoblin_global_scaling_factor = (int) requested_scale;
+        }
+      else
+        {
+          g_warning ("Ignoring invalid Gnoblin global monitor scale");
+        }
+    }
+  else if (scale_value &&
+           !(g_variant_is_of_type (scale_value, G_VARIANT_TYPE_STRING) &&
+             g_str_equal (g_variant_get_string (scale_value, NULL), "inherit")))
+    {
+      g_warning ("Ignoring invalid Gnoblin global monitor scale");
+    }
+
+  if (update_global_scaling_factor (settings))
+    g_signal_emit (settings, signals[GLOBAL_SCALING_FACTOR_CHANGED], 0);
 }
 
 static gboolean

@@ -1289,6 +1289,13 @@ test_cases += [
       test_client_executables.get('service-client'),
     ],
   },
+  {
+    'name': 'gnoblin-monitor-settings',
+    'suite': 'backend',
+    'sources': [
+      'gnoblin-monitor-settings-test.c',
+    ],
+  },
 ]
 
 foreach test_case: test_cases
