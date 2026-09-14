@@ -1173,10 +1173,10 @@ subdir('helpers')
 
 subdir('third_party')
 
-mutter_sources += files(
+mutter_sources += [
   'core/gnoblin-runtime-protocol.c',
   'core/gnoblin-runtime-cache.c',
-)
+]
 
 libmutter = library(libmutter_name,
   mutter_sources,
