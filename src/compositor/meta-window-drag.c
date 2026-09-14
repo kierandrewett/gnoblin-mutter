@@ -73,6 +73,7 @@ struct _MetaWindowDrag {
   int initial_x, initial_y;            /* These are only relevant for */
   gboolean threshold_movement_reached; /* raise_on_click == FALSE.    */
   unsigned int last_edge_resistance_flags;
+  gboolean constrain_drag_to_work_area;
   unsigned int move_resize_later_id;
   /* if TRUE, window was maximized at start of current grab op */
   gboolean shaken_loose;
