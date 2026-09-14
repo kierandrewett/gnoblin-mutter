@@ -1179,6 +1179,10 @@ mutter_sources += [
   'wayland/gnoblin-lua-pattern.c',
 ]
 
+if have_remote_desktop
+  mutter_sources += 'core/gnoblin-pipewire-monitor.c'
+endif
+
 libmutter = library(libmutter_name,
   mutter_sources,
   mutter_built_sources,
