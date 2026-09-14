@@ -121,6 +121,13 @@ void meta_window_actor_remove_surface_actor (MetaWindowActor  *window_actor,
 
 void meta_window_actor_invalidate_background_blur (MetaWindowActor *window_actor);
 
+GBytes *meta_window_actor_paint_to_png (MetaWindowActor *self,
+                                        int              max_width,
+                                        int              max_height,
+                                        int             *out_width,
+                                        int             *out_height,
+                                        GError         **error);
+
 void meta_window_actor_set_tied_to_drag (MetaWindowActor *window_actor,
                                          gboolean         tied_to_drag);
 
