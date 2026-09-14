@@ -182,6 +182,7 @@ void meta_backend_monitors_changed (MetaBackend *backend);
 gboolean meta_backend_is_stage_views_scaled (MetaBackend *backend);
 
 MetaInputMapper *meta_backend_get_input_mapper (MetaBackend *backend);
+META_EXPORT_TEST
 MetaInputSettings *meta_backend_get_input_settings (MetaBackend *backend);
 
 void meta_backend_notify_keymap_changed (MetaBackend *backend);

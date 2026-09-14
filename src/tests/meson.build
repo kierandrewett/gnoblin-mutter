@@ -1278,6 +1278,13 @@ endif
 # Miscellaneous tests
 test_cases += [
   {
+    'name': 'trackball-gnoblin-settings',
+    'suite': 'input',
+    'sources': [
+      'trackball-gnoblin-settings-test.c',
+    ],
+  },
+  {
     'name': 'a11y-gnoblin-settings',
     'suite': 'a11y',
     'sources': [

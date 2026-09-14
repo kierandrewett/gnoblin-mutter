@@ -28,6 +28,7 @@
 #endif
 
 #include "backends/meta-backend-types.h"
+#include "core/util-private.h"
 #include "clutter/clutter.h"
 #include "meta/display.h"
 
@@ -207,8 +208,10 @@ void meta_input_settings_set_device_aspect_ratio (MetaInputSettings  *input_sett
 void meta_input_settings_get_kbd_a11y_settings (MetaInputSettings   *input_settings,
                                                 MetaKbdA11ySettings *a11y_settings);
 
+META_EXPORT_TEST
 void meta_input_settings_add_device (MetaInputSettings  *input_settings,
                                      ClutterInputDevice *device);
+META_EXPORT_TEST
 void meta_input_settings_remove_device (MetaInputSettings  *input_settings,
                                         ClutterInputDevice *device);
 void meta_input_settings_notify_tool_change (MetaInputSettings      *input_settings,
