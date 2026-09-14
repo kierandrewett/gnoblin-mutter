@@ -1313,6 +1313,7 @@ meta_wayland_text_input_insert_gnoblin_text (MetaWaylandTextInput *text_input,
                                                    client_id, focus_epoch))
     return FALSE;
 
-  clutter_input_focus_commit (text_input->input_focus, text);
+  CLUTTER_INPUT_FOCUS_GET_CLASS (text_input->input_focus)->commit_text (
+    text_input->input_focus, text);
   return TRUE;
 }
