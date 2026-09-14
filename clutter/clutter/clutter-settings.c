@@ -45,6 +45,8 @@ struct _ClutterSettings
 
   gint double_click_time;
   gint double_click_distance;
+  gboolean gnoblin_double_click_time_configured;
+  gint gnoblin_double_click_time;
 
   gint dnd_drag_threshold;
   gboolean gnoblin_drag_threshold_configured;
@@ -222,7 +224,9 @@ sync_mouse_options (ClutterSettings *self)
   int double_click;
   int drag_threshold;
 
-  double_click = g_settings_get_int (self->mouse_settings, "double-click");
+  double_click = self->gnoblin_double_click_time_configured
+                 ? self->gnoblin_double_click_time
+                 : g_settings_get_int (self->mouse_settings, "double-click");
   drag_threshold = self->gnoblin_drag_threshold_configured
                    ? self->gnoblin_drag_threshold
                    : g_settings_get_int (self->mouse_settings, "drag-threshold");
@@ -234,14 +238,18 @@ sync_mouse_options (ClutterSettings *self)
 }
 
 void
-_clutter_settings_set_gnoblin_drag_threshold (ClutterSettings *settings,
-                                              gboolean         configured,
-                                              int              threshold)
+_clutter_settings_set_gnoblin_mouse_options (ClutterSettings *settings,
+                                             gboolean         double_click_configured,
+                                             int              double_click_time,
+                                             gboolean         drag_threshold_configured,
+                                             int              drag_threshold)
 {
   g_return_if_fail (CLUTTER_IS_SETTINGS (settings));
 
-  settings->gnoblin_drag_threshold_configured = configured;
-  settings->gnoblin_drag_threshold = threshold;
+  settings->gnoblin_double_click_time_configured = double_click_configured;
+  settings->gnoblin_double_click_time = double_click_time;
+  settings->gnoblin_drag_threshold_configured = drag_threshold_configured;
+  settings->gnoblin_drag_threshold = drag_threshold;
   sync_mouse_options (settings);
 }
 

@@ -1272,14 +1272,24 @@ meta_prefs_apply_gnoblin_input_preferences (MetaBackend *backend,
   g_autoptr (GVariant) mouse = input
     ? g_variant_lookup_value (input, "mouse", G_VARIANT_TYPE_VARDICT)
     : NULL;
+  int configured_double_click_time;
   int configured_threshold;
+  gboolean double_click_configured;
   gboolean configured;
+  int double_click_time;
   int threshold;
 
   g_return_if_fail (META_IS_BACKEND (backend));
 
   if (!is_gnoblin_session ())
     return;
+
+  double_click_configured = mouse &&
+                            g_variant_lookup (mouse, "double-click-time", "i",
+                                              &configured_double_click_time);
+  double_click_time = double_click_configured
+    ? configured_double_click_time
+    : g_settings_get_int (SETTINGS (SCHEMA_MOUSE), "double-click");
 
   configured = mouse &&
                g_variant_lookup (mouse, "drag-threshold", "i",
@@ -1301,9 +1311,11 @@ meta_prefs_apply_gnoblin_input_preferences (MetaBackend *backend,
     ClutterSettings *clutter_settings =
       clutter_context_get_settings (clutter_context);
 
-    _clutter_settings_set_gnoblin_drag_threshold (clutter_settings,
-                                                  configured,
-                                                  threshold);
+    _clutter_settings_set_gnoblin_mouse_options (clutter_settings,
+                                                 double_click_configured,
+                                                 double_click_time,
+                                                 configured,
+                                                 threshold);
   }
 }
 

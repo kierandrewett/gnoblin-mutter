@@ -9,9 +9,11 @@ void    _clutter_settings_set_backend           (ClutterSettings *settings,
                                                  ClutterBackend  *backend);
 
 CLUTTER_EXPORT
-void    _clutter_settings_set_gnoblin_drag_threshold (ClutterSettings *settings,
-                                                      gboolean         configured,
-                                                      int              threshold);
+void    _clutter_settings_set_gnoblin_mouse_options (ClutterSettings *settings,
+                                                     gboolean         double_click_configured,
+                                                     int              double_click_time,
+                                                     gboolean         drag_threshold_configured,
+                                                     int              drag_threshold);
 
 void clutter_settings_ensure_pointer_a11y_settings (ClutterSettings *settings,
                                                     ClutterSeat     *seat);
