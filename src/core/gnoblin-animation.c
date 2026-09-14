@@ -1738,7 +1738,8 @@ static gboolean select_window_lifecycle_animation(
     }
   }
 
-  return *selected_name != NULL;
+  /* No configured animation is a valid choice; only rule matching can fail. */
+  return TRUE;
 }
 
 static void apply_rule_overrides(AnimationSpec *spec, GVariant *overrides) {
