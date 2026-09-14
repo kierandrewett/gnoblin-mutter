@@ -1176,6 +1176,7 @@ subdir('third_party')
 mutter_sources += [
   'core/gnoblin-runtime-protocol.c',
   'core/gnoblin-runtime-cache.c',
+  'wayland/gnoblin-lua-pattern.c',
 ]
 
 libmutter = library(libmutter_name,
