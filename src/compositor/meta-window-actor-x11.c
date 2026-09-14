@@ -1071,7 +1071,8 @@ void
 meta_window_actor_x11_set_rounded_clip (MetaWindowActorX11 *actor_x11,
                                         double              radius,
                                         double              exponent,
-                                        gboolean            automatic)
+                                        gboolean            automatic,
+                                        const double        padding[4])
 {
   MetaSurfaceActor *surface;
 
@@ -1082,7 +1083,7 @@ meta_window_actor_x11_set_rounded_clip (MetaWindowActorX11 *actor_x11,
     return;
 
   meta_gnoblin_window_effects_set_rounded_clip (
-    CLUTTER_ACTOR (surface), radius, exponent, automatic);
+    CLUTTER_ACTOR (surface), radius, exponent, automatic, padding);
 }
 
 static void

@@ -665,7 +665,8 @@ void
 meta_window_actor_wayland_set_rounded_clip (MetaWindowActor *actor,
                                             double           radius,
                                             double           exponent,
-                                            gboolean         automatic)
+                                            gboolean         automatic,
+                                            const double     padding[4])
 {
   MetaWindowActorWayland *self;
 
@@ -673,7 +674,7 @@ meta_window_actor_wayland_set_rounded_clip (MetaWindowActor *actor,
 
   self = META_WINDOW_ACTOR_WAYLAND (actor);
   meta_gnoblin_window_effects_set_rounded_clip (
-    CLUTTER_ACTOR (self->surface_container), radius, exponent, automatic);
+    CLUTTER_ACTOR (self->surface_container), radius, exponent, automatic, padding);
 }
 
 static void

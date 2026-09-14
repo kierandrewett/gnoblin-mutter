@@ -35,4 +35,5 @@ void meta_window_actor_x11_update_shape (MetaWindowActorX11 *actor_x11);
 void meta_window_actor_x11_set_rounded_clip (MetaWindowActorX11 *actor_x11,
                                              double              radius,
                                              double              exponent,
-                                             gboolean            automatic);
+                                             gboolean            automatic,
+                                             const double        padding[4]);
