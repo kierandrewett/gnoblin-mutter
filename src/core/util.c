@@ -2306,7 +2306,7 @@ gnoblin_native_typed_window_operation (MetaDisplay *display,
           return NULL;
         }
       meta_window_get_frame_rect (window, &frame);
-      meta_window_move_resize_frame (window, FALSE, frame.x, frame.y,
+      meta_window_move_resize_frame (window, TRUE, frame.x, frame.y,
                                      (int) width, (int) height);
     }
   else if (g_str_equal (method, "window.move_to_workspace"))
