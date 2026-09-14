@@ -41,3 +41,7 @@ void meta_window_actor_wayland_set_rounded_clip (MetaWindowActor *actor,
                                                  double           exponent,
                                                  gboolean         automatic,
                                                  const double     padding[4]);
+
+void meta_window_actor_wayland_set_csd_reconstruction (MetaWindowActor *actor,
+                                                       gboolean         enabled,
+                                                       const double     insets[4]);

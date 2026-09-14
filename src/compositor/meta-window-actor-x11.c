@@ -1086,6 +1086,23 @@ meta_window_actor_x11_set_rounded_clip (MetaWindowActorX11 *actor_x11,
     CLUTTER_ACTOR (surface), radius, exponent, automatic, padding);
 }
 
+void
+meta_window_actor_x11_set_csd_reconstruction (MetaWindowActorX11 *actor_x11,
+                                             gboolean            enabled,
+                                             const double        insets[4])
+{
+  MetaSurfaceActor *surface;
+
+  g_return_if_fail (META_IS_WINDOW_ACTOR_X11 (actor_x11));
+
+  surface = meta_window_actor_get_surface (META_WINDOW_ACTOR (actor_x11));
+  if (!surface)
+    return;
+
+  meta_gnoblin_window_effects_set_csd_reconstruction (
+    CLUTTER_ACTOR (surface), enabled, insets);
+}
+
 static void
 handle_updates (MetaWindowActorX11 *actor_x11)
 {

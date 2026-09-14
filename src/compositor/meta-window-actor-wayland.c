@@ -677,6 +677,20 @@ meta_window_actor_wayland_set_rounded_clip (MetaWindowActor *actor,
     CLUTTER_ACTOR (self->surface_container), radius, exponent, automatic, padding);
 }
 
+void
+meta_window_actor_wayland_set_csd_reconstruction (MetaWindowActor *actor,
+                                                  gboolean         enabled,
+                                                  const double     insets[4])
+{
+  MetaWindowActorWayland *self;
+
+  g_return_if_fail (META_IS_WINDOW_ACTOR_WAYLAND (actor));
+
+  self = META_WINDOW_ACTOR_WAYLAND (actor);
+  meta_gnoblin_window_effects_set_csd_reconstruction (
+    CLUTTER_ACTOR (self->surface_container), enabled, insets);
+}
+
 static void
 meta_window_actor_wayland_map (ClutterActor *actor)
 {

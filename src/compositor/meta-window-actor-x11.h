@@ -37,3 +37,7 @@ void meta_window_actor_x11_set_rounded_clip (MetaWindowActorX11 *actor_x11,
                                              double              exponent,
                                              gboolean            automatic,
                                              const double        padding[4]);
+
+void meta_window_actor_x11_set_csd_reconstruction (MetaWindowActorX11 *actor_x11,
+                                                   gboolean            enabled,
+                                                   const double        insets[4]);
