@@ -28,9 +28,12 @@
 #endif
 
 #include "core/meta-tablet-action-mapper.h"
+#include "backends/meta-backend-private.h"
 #include "backends/meta-input-device-private.h"
+#include "backends/meta-input-mapper-private.h"
 #include "backends/meta-logical-monitor-private.h"
 #include "backends/meta-monitor-private.h"
+#include "backends/meta-output.h"
 #include "core/display-private.h"
 
 typedef struct _TabletMappingInfo TabletMappingInfo;
@@ -343,6 +346,35 @@ cycle_logical_monitors (MetaTabletActionMapperPrivate  *mapper,
   return TRUE;
 }
 
+static char *
+logical_monitor_get_connector_id (MetaLogicalMonitor *logical_monitor)
+{
+  GList *monitors, *monitor_link;
+  char *connector_id = NULL;
+
+  monitors = meta_logical_monitor_get_monitors (logical_monitor);
+  for (monitor_link = monitors; monitor_link; monitor_link = monitor_link->next)
+    {
+      MetaMonitor *monitor = monitor_link->data;
+      GList *outputs, *output_link;
+
+      outputs = meta_monitor_get_outputs (monitor);
+      for (output_link = outputs; output_link; output_link = output_link->next)
+        {
+          const char *name = meta_output_get_name (output_link->data);
+
+          if (name && *name &&
+              (!connector_id || g_strcmp0 (name, connector_id) < 0))
+            {
+              g_free (connector_id);
+              connector_id = g_strdup (name);
+            }
+        }
+    }
+
+  return connector_id;
+}
+
 static MetaMonitor *
 logical_monitor_find_monitor (MetaLogicalMonitor *logical_monitor,
                               const char         *vendor,
@@ -423,6 +455,9 @@ meta_tablet_action_mapper_cycle_tablet_output (MetaTabletActionMapper *mapper,
 {
   MetaTabletActionMapperPrivate *priv =
     meta_tablet_action_mapper_get_instance_private (mapper);
+  MetaBackend *backend =
+    meta_monitor_manager_get_backend (priv->monitor_manager);
+  MetaInputMapper *input_mapper = meta_backend_get_input_mapper (backend);
   TabletMappingInfo *info;
   MetaLogicalMonitor *logical_monitor = NULL;
   const char *edid[4] = { 0 }, *pretty_name = NULL;
@@ -450,6 +485,26 @@ meta_tablet_action_mapper_cycle_tablet_output (MetaTabletActionMapper *mapper,
         libwacom_get_integration_flags (wacom_device) != WACOM_DEVICE_INTEGRATED_NONE;
     }
 #endif
+
+  if (input_mapper &&
+      meta_input_mapper_has_gnoblin_output (input_mapper, device))
+    {
+      g_autofree char *output_id = NULL;
+
+      logical_monitor =
+        meta_input_mapper_get_device_logical_monitor (input_mapper, device);
+      if (!cycle_logical_monitors (priv, is_integrated_device, logical_monitor,
+                                   &logical_monitor))
+        return;
+
+      if (logical_monitor)
+        output_id = logical_monitor_get_connector_id (logical_monitor);
+      meta_input_mapper_set_gnoblin_output_override (input_mapper, device,
+                                                     output_id ? output_id : "auto");
+      meta_display_show_tablet_mapping_notification (
+        meta_tablet_action_mapper_get_display (mapper), device, pretty_name);
+      return;
+    }
 
   meta_tablet_action_mapper_find_monitor (priv, info->settings, device,
                                           NULL, &logical_monitor);

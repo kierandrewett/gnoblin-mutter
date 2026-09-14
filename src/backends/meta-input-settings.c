@@ -2583,6 +2583,7 @@ meta_display_apply_gnoblin_input_config (MetaDisplay *display,
 {
   MetaBackend *backend;
   MetaInputSettings *input_settings;
+  MetaInputMapper *input_mapper;
   MetaInputSettingsPrivate *priv;
   GHashTableIter iter;
   gpointer value;
@@ -2599,6 +2600,10 @@ meta_display_apply_gnoblin_input_config (MetaDisplay *display,
   g_clear_pointer (&priv->gnoblin_config, g_variant_unref);
   if (input)
     priv->gnoblin_config = g_variant_ref_sink (g_variant_get_normal_form (input));
+
+  input_mapper = meta_backend_get_input_mapper (backend);
+  if (input_mapper)
+    meta_input_mapper_set_gnoblin_input_config (input_mapper, input);
 
   priv->gnoblin_numlock_state = input_get_boolean (input_settings,
                                                   priv->keyboard_settings,

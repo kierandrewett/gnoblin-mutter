@@ -24,6 +24,8 @@
 #include "backends/meta-input-mapper-private.h"
 #include "backends/meta-monitor-manager-private.h"
 #include "backends/meta-logical-monitor-private.h"
+#include "backends/meta-monitor-private.h"
+#include "backends/meta-output.h"
 #include "backends/meta-backend-private.h"
 
 #include "meta-dbus-input-mapping.h"
@@ -59,6 +61,7 @@ struct _MetaInputMapper
   ClutterSeat *seat;
   GHashTable *input_devices; /* ClutterInputDevice -> MetaMapperInputInfo */
   GHashTable *output_devices; /* MetaLogicalMonitor -> MetaMapperOutputInfo */
+  GVariant *gnoblin_tablet_config;
   guint dbus_name_id;
 };
 
@@ -79,6 +82,10 @@ struct _MetaMapperInputInfo
   MetaInputMapper *mapper;
   MetaMapperOutputInfo *output;
   GSettings *settings;
+  char *gnoblin_output;
+  char *gnoblin_runtime_output;
+  gboolean has_gnoblin_output;
+  gboolean has_gnoblin_runtime_output;
 };
 
 struct _MetaMapperOutputInfo
@@ -182,6 +189,61 @@ settings_output_changed_cb (GSettings           *settings,
   mapper_recalculate_input (info->mapper, info);
 }
 
+static GVariant *
+lookup_gnoblin_tablet_settings (GVariant           *tablet_config,
+                                ClutterInputDevice *device)
+{
+  GVariantIter iter;
+  const char *selector;
+  GVariant *settings;
+  g_autofree char *device_id = NULL;
+
+  if (!tablet_config ||
+      clutter_input_device_get_device_type (device) == CLUTTER_TOUCHSCREEN_DEVICE)
+    return NULL;
+
+  device_id = g_strdup_printf ("%.4x:%.4x",
+                               clutter_input_device_get_vendor_id (device),
+                               clutter_input_device_get_product_id (device));
+  g_variant_iter_init (&iter, tablet_config);
+  while (g_variant_iter_next (&iter, "{&sv}", &selector, &settings))
+    {
+      if (g_ascii_strcasecmp (selector, device_id) == 0)
+        return settings;
+      g_variant_unref (settings);
+    }
+
+  return NULL;
+}
+
+static void
+mapper_input_info_update_gnoblin_output (MetaMapperInputInfo *info,
+                                         GVariant            *tablet_config,
+                                         gboolean             reset_runtime)
+{
+  g_autoptr (GVariant) device_config = NULL;
+  g_autoptr (GVariant) output = NULL;
+
+  g_clear_pointer (&info->gnoblin_output, g_free);
+  info->has_gnoblin_output = FALSE;
+  if (reset_runtime)
+    {
+      g_clear_pointer (&info->gnoblin_runtime_output, g_free);
+      info->has_gnoblin_runtime_output = FALSE;
+    }
+
+  device_config = lookup_gnoblin_tablet_settings (tablet_config, info->device);
+  if (!device_config)
+    return;
+
+  output = g_variant_lookup_value (device_config, "output", G_VARIANT_TYPE_STRING);
+  if (!output)
+    return;
+
+  info->gnoblin_output = g_variant_dup_string (output, NULL);
+  info->has_gnoblin_output = TRUE;
+}
+
 static MetaMapperInputInfo *
 mapper_input_info_new (ClutterInputDevice *device,
                        MetaInputMapper    *mapper)
@@ -192,6 +254,7 @@ mapper_input_info_new (ClutterInputDevice *device,
   info->mapper = mapper;
   info->device = device;
   info->settings = get_device_settings (device);
+  mapper_input_info_update_gnoblin_output (info, mapper->gnoblin_tablet_config, TRUE);
 
   g_signal_connect (info->settings, "changed::output",
                     G_CALLBACK (settings_output_changed_cb), info);
@@ -204,6 +267,8 @@ mapper_input_info_free (MetaMapperInputInfo *info)
 {
   g_signal_handlers_disconnect_by_func (info->settings, settings_output_changed_cb, info);
   g_object_unref (info->settings);
+  g_free (info->gnoblin_output);
+  g_free (info->gnoblin_runtime_output);
   g_free (info);
 }
 
@@ -458,6 +523,20 @@ match_config (MetaMapperInputInfo *info,
   return match;
 }
 
+static gboolean
+monitor_has_output_name (MetaMonitor *monitor,
+                         const char  *name)
+{
+  GList *outputs, *l;
+
+  outputs = meta_monitor_get_outputs (monitor);
+  for (l = outputs; l; l = l->next)
+    if (g_strcmp0 (meta_output_get_name (l->data), name) == 0)
+      return TRUE;
+
+  return FALSE;
+}
+
 static int
 sort_by_score (DeviceMatch *match1,
                DeviceMatch *match2)
@@ -474,7 +553,14 @@ guess_candidates (MetaInputMapper     *mapper,
   gboolean builtin = FALSE;
   gboolean integrated = TRUE;
   gboolean automatic;
+  gboolean has_gnoblin_output;
+  const char *gnoblin_output;
   g_autoptr (GVariant) user_value = NULL;
+
+  has_gnoblin_output = input->has_gnoblin_runtime_output || input->has_gnoblin_output;
+  gnoblin_output = input->has_gnoblin_runtime_output
+                   ? input->gnoblin_runtime_output
+                   : input->gnoblin_output;
 
 #ifdef HAVE_LIBWACOM
   if (clutter_input_device_get_device_type (input->device) != CLUTTER_TOUCHSCREEN_DEVICE)
@@ -497,7 +583,9 @@ guess_candidates (MetaInputMapper     *mapper,
 #endif
 
   user_value = g_settings_get_user_value (input->settings, "output");
-  automatic = user_value == NULL;
+  automatic = has_gnoblin_output
+              ? g_str_equal (gnoblin_output, "auto")
+              : user_value == NULL;
 
   monitors = meta_monitor_manager_get_monitors (mapper->monitor_manager);
 
@@ -508,17 +596,26 @@ guess_candidates (MetaInputMapper     *mapper,
 
       g_assert (META_IS_MONITOR (l->data));
 
-      if (automatic && integrated && match_edid (input, l->data, &edid_match))
-        match.score |= 1 << edid_match;
+      if (has_gnoblin_output && !automatic)
+        {
+          if (monitor_has_output_name (l->data, gnoblin_output))
+            match.score |= 1 << META_MATCH_CONFIG;
+        }
+      else
+        {
+          if (automatic && integrated && match_edid (input, l->data, &edid_match))
+            match.score |= 1 << edid_match;
 
-      if (automatic && integrated && match_size (input, l->data))
-        match.score |= 1 << META_MATCH_SIZE;
+          if (automatic && integrated && match_size (input, l->data))
+            match.score |= 1 << META_MATCH_SIZE;
 
-      if (automatic && builtin && match_builtin (mapper, l->data))
-        match.score |= 1 << META_MATCH_IS_BUILTIN;
+          if (automatic && builtin && match_builtin (mapper, l->data))
+            match.score |= 1 << META_MATCH_IS_BUILTIN;
 
-      if (!automatic && match_config (input, l->data, monitors))
-        match.score |= 1 << META_MATCH_CONFIG;
+          if (!has_gnoblin_output && !automatic &&
+              match_config (input, l->data, monitors))
+            match.score |= 1 << META_MATCH_CONFIG;
+        }
 
       if (match.score > 0)
         g_array_append_val (info->matches, match);
@@ -793,6 +890,7 @@ meta_input_mapper_finalize (GObject *object)
 
   g_hash_table_unref (mapper->input_devices);
   g_hash_table_unref (mapper->output_devices);
+  g_clear_pointer (&mapper->gnoblin_tablet_config, g_variant_unref);
 
   G_OBJECT_CLASS (meta_input_mapper_parent_class)->finalize (object);
 }
@@ -1133,6 +1231,79 @@ meta_input_mapper_get_device_logical_monitor (MetaInputMapper    *mapper,
     }
 
   return NULL;
+}
+
+static MetaMapperInputInfo *
+mapper_get_input_info_for_device (MetaInputMapper    *mapper,
+                                  ClutterInputDevice *device)
+{
+  if (clutter_input_device_get_device_type (device) == CLUTTER_PAD_DEVICE)
+    {
+      device = find_grouped_pen (device);
+      if (!device)
+        return NULL;
+    }
+
+  return g_hash_table_lookup (mapper->input_devices, device);
+}
+
+void
+meta_input_mapper_set_gnoblin_input_config (MetaInputMapper *mapper,
+                                            GVariant        *input_config)
+{
+  MetaMapperInputInfo *input;
+  GHashTableIter iter;
+  g_autoptr (GVariant) tablets = NULL;
+
+  g_return_if_fail (META_IS_INPUT_MAPPER (mapper));
+  g_return_if_fail (input_config == NULL ||
+                    g_variant_is_of_type (input_config, G_VARIANT_TYPE_VARDICT));
+
+  if (input_config)
+    tablets = g_variant_lookup_value (input_config, "tablets", G_VARIANT_TYPE_VARDICT);
+  g_clear_pointer (&mapper->gnoblin_tablet_config, g_variant_unref);
+  if (tablets)
+    mapper->gnoblin_tablet_config = g_variant_ref (tablets);
+
+  g_hash_table_iter_init (&iter, mapper->input_devices);
+  while (g_hash_table_iter_next (&iter, NULL, (gpointer *) &input))
+    mapper_input_info_update_gnoblin_output (input, mapper->gnoblin_tablet_config, TRUE);
+
+  mapper_recalculate_candidates (mapper);
+}
+
+gboolean
+meta_input_mapper_has_gnoblin_output (MetaInputMapper    *mapper,
+                                      ClutterInputDevice *device)
+{
+  MetaMapperInputInfo *input;
+
+  g_return_val_if_fail (META_IS_INPUT_MAPPER (mapper), FALSE);
+  g_return_val_if_fail (CLUTTER_IS_INPUT_DEVICE (device), FALSE);
+
+  input = mapper_get_input_info_for_device (mapper, device);
+  return input && (input->has_gnoblin_output || input->has_gnoblin_runtime_output);
+}
+
+void
+meta_input_mapper_set_gnoblin_output_override (MetaInputMapper    *mapper,
+                                               ClutterInputDevice *device,
+                                               const char         *output)
+{
+  MetaMapperInputInfo *input;
+
+  g_return_if_fail (META_IS_INPUT_MAPPER (mapper));
+  g_return_if_fail (CLUTTER_IS_INPUT_DEVICE (device));
+  g_return_if_fail (output != NULL);
+
+  input = mapper_get_input_info_for_device (mapper, device);
+  if (!input)
+    return;
+
+  g_free (input->gnoblin_runtime_output);
+  input->gnoblin_runtime_output = g_strdup (output);
+  input->has_gnoblin_runtime_output = TRUE;
+  mapper_recalculate_input (mapper, input);
 }
 
 GSettings *

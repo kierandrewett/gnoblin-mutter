@@ -37,6 +37,13 @@ void meta_input_mapper_add_device    (MetaInputMapper    *mapper,
                                       ClutterInputDevice *device);
 void meta_input_mapper_remove_device (MetaInputMapper    *mapper,
                                       ClutterInputDevice *device);
+void meta_input_mapper_set_gnoblin_input_config (MetaInputMapper *mapper,
+                                                 GVariant        *input_config);
+gboolean meta_input_mapper_has_gnoblin_output (MetaInputMapper    *mapper,
+                                               ClutterInputDevice *device);
+void meta_input_mapper_set_gnoblin_output_override (MetaInputMapper    *mapper,
+                                                    ClutterInputDevice *device,
+                                                    const char         *output);
 
 ClutterInputDevice *
 meta_input_mapper_get_logical_monitor_device (MetaInputMapper        *mapper,
