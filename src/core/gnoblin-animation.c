@@ -92,6 +92,7 @@ static void start_window_open_animation(MetaWindowActor *window_actor);
 static void frame_add_number(GVariantBuilder *builder, const char *key,
                              double value);
 static void stop_lock_watch(AnimationState *state);
+static gboolean is_locked(MetaDisplay *display);
 static GVariant *animation_spec_variant(AnimationSpec *spec);
 
 static void animation_spec_clear(AnimationSpec *spec) {
