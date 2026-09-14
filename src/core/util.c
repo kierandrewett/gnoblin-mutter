@@ -55,6 +55,8 @@
 #include "meta/window.h"
 #include "meta/workspace.h"
 
+#include "wayland/meta-wayland-layer-shell.h"
+
 gboolean
 meta_gnoblin_window_pattern_match (const char *pattern,
                                    const char *value,
