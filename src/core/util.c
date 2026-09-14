@@ -24,6 +24,7 @@
 #include "core/display-private.h"
 #include "core/meta-workspace-manager-private.h"
 #include "core/util-private.h"
+#include "compositor/compositor-private.h"
 #include "core/gnoblin-native-control.h"
 #include "core/gnoblin-animation.h"
 #include "wayland/gnoblin-lua-pattern.h"
@@ -2308,8 +2309,17 @@ gnoblin_native_typed_window_operation (MetaDisplay *display,
           return NULL;
         }
       meta_window_get_frame_rect (window, &frame);
-      meta_window_move_resize_frame (window, TRUE, frame.x, frame.y,
-                                     (int) width, (int) height);
+      if (frame.width != width || frame.height != height)
+        {
+          MtkRectangle old_buffer_rect;
+
+          meta_window_get_buffer_rect (window, &old_buffer_rect);
+          meta_compositor_size_change_window (display->compositor, window,
+                                              META_SIZE_CHANGE_RESIZE, &frame,
+                                              &old_buffer_rect);
+          meta_window_move_resize_frame (window, TRUE, frame.x, frame.y,
+                                         (int) width, (int) height);
+        }
     }
   else if (g_str_equal (method, "window.move_to_workspace"))
     {
