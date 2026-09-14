@@ -18,6 +18,7 @@
 #include "config.h"
 
 #include "clutter/clutter.h"
+#include "clutter/clutter-stage-private.h"
 #include "clutter/clutter-stage-view-private.h"
 #include "compositor/meta-window-actor-private.h"
 #include "meta-test/meta-context-test.h"
@@ -1473,6 +1474,8 @@ meta_test_stage_views_fractional_position (void)
     capture_fb = COGL_FRAMEBUFFER (capture);
     g_assert_true (cogl_framebuffer_allocate (capture_fb, &error));
     g_assert_no_error (error);
+
+    _clutter_stage_set_viewport (CLUTTER_STAGE (stage), 0, 0);
 
     clutter_stage_paint_to_framebuffer_clipped (CLUTTER_STAGE (stage),
                                                 capture_fb,

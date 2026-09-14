@@ -146,9 +146,6 @@ static guint stage_signals[LAST_SIGNAL] = { 0, };
 static const CoglColor default_stage_color = { 255, 255, 255, 255 };
 
 static void clutter_stage_update_view_perspective (ClutterStage *stage);
-static void clutter_stage_set_viewport (ClutterStage *stage,
-                                        float         width,
-                                        float         height);
 
 static void clutter_stage_pick_and_update_sprite (ClutterStage             *stage,
                                                   ClutterSprite            *sprite,
@@ -299,7 +296,7 @@ clutter_stage_allocate (ClutterActor           *self,
   clutter_actor_get_allocation_box (self, &alloc);
   clutter_actor_box_get_size (&alloc, &new_width, &new_height);
 
-  clutter_stage_set_viewport (CLUTTER_STAGE (self), new_width, new_height);
+  _clutter_stage_set_viewport (CLUTTER_STAGE (self), new_width, new_height);
 }
 
 static void
@@ -1243,7 +1240,7 @@ clutter_stage_constructed (GObject *gobject)
 
   clutter_actor_set_reactive (CLUTTER_ACTOR (self), TRUE);
   clutter_stage_set_key_focus (self, NULL);
-  clutter_stage_set_viewport (self, geom.width, geom.height);
+  _clutter_stage_set_viewport (self, geom.width, geom.height);
 
   seat = clutter_backend_get_default_seat (backend);
   g_signal_connect_object (seat, "is-unfocus-inhibited-changed",
@@ -1801,10 +1798,10 @@ _clutter_stage_dirty_projection (ClutterStage *stage)
  * OpenGL 4.0 has introduced floating point viewports which we might
  * want to expose via this API eventually.
  */
-static void
-clutter_stage_set_viewport (ClutterStage *stage,
-                            float         width,
-                            float         height)
+void
+_clutter_stage_set_viewport (ClutterStage *stage,
+                             float         width,
+                             float         height)
 {
   ClutterStagePrivate *priv;
   float x, y;
@@ -2671,6 +2668,20 @@ clutter_stage_paint_to_framebuffer_clipped (ClutterStage       *stage,
 
       cogl_color_init_from_4f (&clear_color, 0.0, 0.0, 0.0, 0.0);
       cogl_framebuffer_clear (framebuffer, COGL_BUFFER_BIT_COLOR, &clear_color);
+    }
+
+  if (priv->viewport[2] <= 0 || priv->viewport[3] <= 0)
+    {
+      MtkRectangle geometry;
+
+      if (priv->impl == NULL)
+        return;
+
+      _clutter_stage_window_get_geometry (priv->impl, &geometry);
+      if (geometry.width <= 0 || geometry.height <= 0)
+        return;
+
+      _clutter_stage_set_viewport (stage, geometry.width, geometry.height);
     }
 
   intersection = mtk_region_create_rectangle (rect);

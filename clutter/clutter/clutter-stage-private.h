@@ -81,6 +81,10 @@ void                _clutter_stage_get_viewport          (ClutterStage          
                                                           float                 *y,
                                                           float                 *width,
                                                           float                 *height);
+CLUTTER_EXPORT
+void                _clutter_stage_set_viewport          (ClutterStage          *stage,
+                                                          float                  width,
+                                                          float                  height);
 void                _clutter_stage_dirty_viewport        (ClutterStage          *stage);
 CLUTTER_EXPORT
 void                _clutter_stage_maybe_setup_viewport  (ClutterStage          *stage,
