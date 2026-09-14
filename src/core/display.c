@@ -128,6 +128,9 @@ typedef struct _MetaDisplayPrivate
 
   gboolean enable_input_capture;
 
+  MetaGnoblinShortcutActivatedFunc gnoblin_shortcut_activated;
+  gpointer gnoblin_shortcut_activated_data;
+
   MetaWindow *pointer_window;
   gulong pointer_window_unmanaging_handler_id;
 
@@ -2252,10 +2255,30 @@ meta_display_accelerator_activate (MetaDisplay           *display,
                                    guint                  action,
                                    const ClutterEvent    *event)
 {
+  MetaDisplayPrivate *priv = meta_display_get_instance_private (display);
+
+  if (priv->gnoblin_shortcut_activated)
+    priv->gnoblin_shortcut_activated (display, action, event,
+                                      priv->gnoblin_shortcut_activated_data);
+
   g_signal_emit (display, display_signals[ACCELERATOR_ACTIVATED], 0,
                  action,
                  clutter_event_get_source_device (event),
                  clutter_event_get_time (event));
+}
+
+void
+meta_display_set_gnoblin_shortcut_activated_handler (MetaDisplay                       *display,
+                                                     MetaGnoblinShortcutActivatedFunc   callback,
+                                                     gpointer                           user_data)
+{
+  MetaDisplayPrivate *priv = meta_display_get_instance_private (display);
+
+  g_return_if_fail (callback == NULL || priv->gnoblin_shortcut_activated == NULL);
+  g_return_if_fail (callback == NULL || user_data != NULL);
+
+  priv->gnoblin_shortcut_activated = callback;
+  priv->gnoblin_shortcut_activated_data = user_data;
 }
 
 void

@@ -22,6 +22,17 @@
 
 #pragma once
 
+#include <glib.h>
+
+#include "meta/display.h"
+
+gboolean meta_display_dispatch_gnoblin_shortcut_event (MetaDisplay *display,
+                                                       const char  *event,
+                                                       GVariant    *payload,
+                                                       guint64      context_handle,
+                                                       guint64      generation,
+                                                       gint64       expires_at_us);
+
 #include <glib/gi18n-lib.h>
 #include <sys/time.h>
 

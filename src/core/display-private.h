@@ -61,6 +61,11 @@ typedef enum
 typedef void (* MetaDisplayWindowFunc) (MetaWindow *window,
                                         gpointer    user_data);
 
+typedef void (* MetaGnoblinShortcutActivatedFunc) (MetaDisplay        *display,
+                                                    guint               action,
+                                                    const ClutterEvent *event,
+                                                    gpointer            user_data);
+
 
 /* To avoid ifdefing MetaX11Display usage when built without X11 support */
 #ifndef HAVE_XWAYLAND
@@ -246,6 +251,9 @@ void meta_display_accelerator_activate (MetaDisplay           *display,
 void meta_display_accelerator_deactivate (MetaDisplay           *display,
                                           guint                  action,
                                           const ClutterEvent    *event);
+void meta_display_set_gnoblin_shortcut_activated_handler (MetaDisplay                       *display,
+                                                          MetaGnoblinShortcutActivatedFunc   callback,
+                                                          gpointer                           user_data);
 void meta_display_modifiers_accelerator_activate (MetaDisplay *display);
 
 void meta_display_update_focus_window (MetaDisplay *display,
