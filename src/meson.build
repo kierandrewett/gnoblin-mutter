@@ -1059,6 +1059,7 @@ wayland_protocols = [
   ['gtk-shell', 'private', ],
   # gnoblin: vendored wlr-layer-shell protocol
   ['wlr-layer-shell-unstable-v1', 'private', ],
+  ['gnoblin-window-frame-v1', 'private', ],
   ['idle-inhibit', 'unstable', 1, ],
   ['keyboard-shortcuts-inhibit', 'unstable', 1, ],
   ['linux-dmabuf', 'stable', 1, ],
