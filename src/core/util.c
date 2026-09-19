@@ -23,6 +23,7 @@
 
 #include "core/display-private.h"
 #include "core/util-private.h"
+#include "core/gnoblin-native-control.h"
 
 #include <gio/gunixinputstream.h>
 #include <glib/gstdio.h>
@@ -169,7 +170,7 @@ meta_gnoblin_layer_namespace (MetaWindow *window)
 gboolean
 meta_is_gnoblin_session (void)
 {
-  return g_strcmp0 (g_getenv ("GNOME_SHELL_SESSION_MODE"), "gnoblin") == 0;
+  return gnoblin_native_control_is_session (NULL);
 }
 
 gboolean
