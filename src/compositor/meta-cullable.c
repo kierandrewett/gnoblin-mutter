@@ -94,6 +94,18 @@ cull_out_children_common (MetaCullable    *cullable,
       if (!META_IS_CULLABLE (child))
         continue;
 
+      /* A fully covered actor remains covered regardless of its effects or
+       * transform. Preserve this information for frame callback throttling.
+       * Do not apply it to redraw clips: offscreen effects still need complete
+       * textures when they render, including before the actor is revealed.
+       */
+      if (method == meta_cullable_cull_unobscured &&
+          region && mtk_region_is_empty (region))
+        {
+          method (META_CULLABLE (child), region);
+          continue;
+        }
+
       needs_culling = (region != NULL);
 
       if (needs_culling && !clutter_actor_is_visible (child))
