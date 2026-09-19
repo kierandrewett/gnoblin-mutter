@@ -42,7 +42,6 @@ void meta_shaped_texture_set_color_state (MetaShapedTexture *stex,
 void meta_shaped_texture_set_is_y_inverted (MetaShapedTexture *stex,
                                             gboolean           is_y_inverted);
 MtkRegion * meta_shaped_texture_get_opaque_region (MetaShapedTexture *stex);
-gboolean meta_shaped_texture_is_opaque (MetaShapedTexture *stex);
 gboolean meta_shaped_texture_has_alpha (MetaShapedTexture *stex);
 void meta_shaped_texture_set_transform (MetaShapedTexture    *stex,
                                         MtkMonitorTransform  transform);

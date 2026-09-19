@@ -47,6 +47,9 @@ META_EXPORT
 MetaMultiTexture * meta_shaped_texture_get_texture (MetaShapedTexture *stex);
 
 META_EXPORT
+gboolean meta_shaped_texture_is_opaque (MetaShapedTexture *stex);
+
+META_EXPORT
 void meta_shaped_texture_set_mask_texture (MetaShapedTexture *stex,
                                            CoglTexture       *mask_texture);
 
