@@ -40,6 +40,7 @@
 #include "wayland/meta-wayland-client-private.h"
 #include "wayland/meta-wayland-color-representation.h"
 #include "wayland/meta-gnoblin-protocols.h"
+#include "wayland/meta-wayland-blur-fade.h"
 #include "wayland/meta-wayland-fractional-scale.h"
 #include "wayland/meta-wayland-gtk-shell.h"
 #include "wayland/meta-wayland-layer-shell.h"
@@ -527,6 +528,7 @@ void
 meta_wayland_surface_state_merge_into (MetaWaylandSurfaceState *from,
                                        MetaWaylandSurfaceState *to)
 {
+  meta_wayland_blur_fade_merge_state (from, to);
   if (from->newly_attached)
     {
       if (to->buffer)
@@ -1094,6 +1096,8 @@ meta_wayland_surface_apply_state (MetaWaylandSurface      *surface,
    */
   if (state->newly_attached && surface->buffer_held)
     g_clear_object (&state->buffer);
+
+  meta_wayland_blur_fade_apply_state (surface, state);
 
   g_signal_emit (state,
                  surface_state_signals[SURFACE_STATE_SIGNAL_APPLIED],

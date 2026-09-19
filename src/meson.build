@@ -597,6 +597,8 @@ mutter_sources += [
   # at build time; registered via meta_gnoblin_init_protocols)
   'wayland/meta-gnoblin-protocols.c',
   'wayland/meta-gnoblin-protocols.h',
+  'wayland/meta-wayland-blur-fade.c',
+  'wayland/meta-wayland-blur-fade.h',
   'wayland/meta-wayland-idle-notify.c',
   'wayland/meta-wayland-idle-notify.h',
   'wayland/meta-wayland-foreign-toplevel-common.c',
@@ -1085,6 +1087,7 @@ wayland_protocols = [
   ['wlr-gamma-control-unstable-v1', 'private', ],
   ['wlr-output-power-management-unstable-v1', 'private', ],
   ['ext-data-control-v1', 'private', ],
+  ['gnoblin-blur-fade-v1', 'private', ],
   ['ext-session-lock-v1', 'private', ],
 ]
 
