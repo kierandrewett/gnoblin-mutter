@@ -138,6 +138,31 @@ ensure_logfile (void)
       g_free (filename);
     }
 }
+
+/**
+ * meta_gnoblin_layer_anchor:
+ * @window: window to inspect
+ *
+ * Returns: layer-shell anchor flags, or -1 for other windows
+ */
+int
+meta_gnoblin_layer_anchor (MetaWindow *window)
+{
+  return GPOINTER_TO_INT (g_object_get_data (G_OBJECT (window),
+                                             "gnoblin-layer-anchor")) - 1;
+}
+
+/**
+ * meta_gnoblin_layer_namespace:
+ * @window: window to inspect
+ *
+ * Returns: (transfer none) (nullable): the layer namespace, or NULL
+ */
+const char *
+meta_gnoblin_layer_namespace (MetaWindow *window)
+{
+  return g_object_get_data (G_OBJECT (window), "gnoblin-layer-namespace");
+}
 #endif
 
 gboolean

@@ -106,3 +106,11 @@ MetaDebugPaintFlag meta_get_debug_paint_flags (void);
 META_EXPORT
 char * meta_accelerator_name (ClutterModifierType accelerator_mods,
                               unsigned int        accelerator_key);
+
+#include "meta/types.h"
+
+META_EXPORT
+int meta_gnoblin_layer_anchor (MetaWindow *window);
+
+META_EXPORT
+const char *meta_gnoblin_layer_namespace (MetaWindow *window);
