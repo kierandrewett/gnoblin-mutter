@@ -41,6 +41,7 @@
 #include "wayland/meta-wayland-client-private.h"
 #include "wayland/meta-wayland-color-representation.h"
 #include "wayland/meta-gnoblin-protocols.h"
+#include "wayland/meta-wayland-background-effect.h"
 #include "wayland/meta-wayland-blur-fade.h"
 #include "wayland/meta-wayland-fractional-scale.h"
 #include "wayland/meta-wayland-gtk-shell.h"
@@ -1102,6 +1103,7 @@ meta_wayland_surface_apply_state (MetaWaylandSurface      *surface,
     g_clear_object (&state->buffer);
 
   meta_wayland_blur_fade_apply_state (surface, state);
+  meta_wayland_background_effect_apply_state (surface, state);
 
   g_signal_emit (state,
                  surface_state_signals[SURFACE_STATE_SIGNAL_APPLIED],

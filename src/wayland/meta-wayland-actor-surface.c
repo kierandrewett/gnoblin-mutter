@@ -25,6 +25,7 @@
 #include "backends/meta-logical-monitor-private.h"
 #include "compositor/meta-surface-actor-wayland.h"
 #include "compositor/meta-window-actor-wayland.h"
+#include "core/util-private.h"
 #include "wayland/meta-wayland-buffer.h"
 #include "wayland/meta-wayland-surface-private.h"
 #include "wayland/meta-window-wayland.h"
@@ -253,7 +254,7 @@ meta_wayland_actor_surface_real_sync_actor_state (MetaWaylandActorSurface *actor
         meta_surface_actor_set_opaque_region (surface_actor, NULL);
       }
 
-    if (surface->background_blur_region)
+    if (!meta_is_gnoblin_session () && surface->background_blur_region)
       {
         g_autoptr (MtkRegion) background_blur_region = NULL;
 

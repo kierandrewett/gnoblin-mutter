@@ -1,152 +1,277 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
-/* ext-background-effect-v1: commit-synchronised, surface-local blur regions. */
+/*
+ * Copyright (C) 2026 Kristof Imeri
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include "config.h"
+
 #include "wayland/meta-wayland-background-effect.h"
+
+#include <glib.h>
+#include <wayland-server.h>
+
+#include "ext-background-effect-v1-server-protocol.h"
+#include "compositor/meta-surface-actor-wayland.h"
+#include "meta/display.h"
+#include "meta/meta-context.h"
+#include "meta/util.h"
 #include "wayland/meta-wayland-private.h"
 #include "wayland/meta-wayland-region.h"
 #include "wayland/meta-wayland-surface-private.h"
-#include "wayland/gnoblin-config.h"
-#include "meta/meta-context.h"
-#include "meta/display.h"
-#include "meta/util.h"
-#include "ext-background-effect-v1-server-protocol.h"
+#include "wayland/meta-wayland-versions.h"
 
-#define OBJECT_KEY "ext-background-effect-object"
-#define REGION_KEY "ext-background-effect-region"
+#define BACKGROUND_EFFECT_SURFACE_DATA "-meta-wayland-background-effect-surface"
+#define GNOBLIN_BACKGROUND_EFFECT_REGION "gnoblin-background-effect-region"
 
-typedef struct {
-    MetaWaylandSurface* surface;
-    gulong destroy_handler;
-} BackgroundSurface;
+typedef struct _MetaWaylandBackgroundEffectSurface
+{
+  MetaWaylandSurface *surface;
+  gulong destroy_handler_id;
+} MetaWaylandBackgroundEffectSurface;
 
-static void set_pending_region(MetaWaylandSurface* surface, MtkRegion* region) {
-    MetaWaylandSurfaceState* pending = meta_wayland_surface_get_pending_state(surface);
-    /* An empty region is an explicit change; NULL qdata means no new request. */
-    g_object_set_data_full(G_OBJECT(pending), REGION_KEY,
-                           region ? mtk_region_copy(region) : mtk_region_create(),
-                           (GDestroyNotify)mtk_region_unref);
+static void
+background_effect_surface_unset_pending_blur_region (MetaWaylandSurface *surface)
+{
+  MetaWaylandSurfaceState *pending;
+
+  if (!surface)
+    return;
+
+  pending = meta_wayland_surface_get_pending_state (surface);
+  if (!pending)
+    return;
+
+  g_clear_pointer (&pending->background_blur_region, mtk_region_unref);
+  pending->background_blur_region_set = TRUE;
 }
 
-static void destroy_resource(struct wl_client* client, struct wl_resource* resource) {
-    wl_resource_destroy(resource);
-}
+static void
+background_effect_surface_destructor (struct wl_resource *resource)
+{
+  MetaWaylandBackgroundEffectSurface *background_effect_surface =
+    wl_resource_get_user_data (resource);
 
-static void surface_destroyed(MetaWaylandSurface* surface, BackgroundSurface* effect) {
-    effect->surface = NULL;
-}
+  if (background_effect_surface->surface)
+    {
+      background_effect_surface_unset_pending_blur_region (
+        background_effect_surface->surface);
 
-static void free_effect(struct wl_resource* resource) {
-    BackgroundSurface* effect = wl_resource_get_user_data(resource);
-    if (effect->surface) {
-        set_pending_region(effect->surface, NULL);
-        g_object_set_data(G_OBJECT(effect->surface), OBJECT_KEY, NULL);
-        g_signal_handler_disconnect(effect->surface, effect->destroy_handler);
+      g_object_set_data (G_OBJECT (background_effect_surface->surface),
+                         BACKGROUND_EFFECT_SURFACE_DATA,
+                         NULL);
+      g_clear_signal_handler (&background_effect_surface->destroy_handler_id,
+                              background_effect_surface->surface);
     }
-    g_free(effect);
+
+  g_free (background_effect_surface);
 }
 
-static void set_blur_region(struct wl_client* client, struct wl_resource* resource,
-                            struct wl_resource* region_resource) {
-    BackgroundSurface* effect = wl_resource_get_user_data(resource);
-    if (!effect->surface) {
-        wl_resource_post_error(resource, EXT_BACKGROUND_EFFECT_SURFACE_V1_ERROR_SURFACE_DESTROYED,
-                               "Surface destroyed");
-        return;
+static void
+background_effect_surface_destroy (struct wl_client   *client,
+                                   struct wl_resource *resource)
+{
+  wl_resource_destroy (resource);
+}
+
+static void
+background_effect_surface_set_blur_region (struct wl_client   *client,
+                                           struct wl_resource *resource,
+                                           struct wl_resource *region_resource)
+{
+  MetaWaylandBackgroundEffectSurface *background_effect_surface =
+    wl_resource_get_user_data (resource);
+  MetaWaylandSurface *surface = background_effect_surface->surface;
+  MetaWaylandSurfaceState *pending;
+
+  if (!surface)
+    {
+      wl_resource_post_error (resource,
+                              EXT_BACKGROUND_EFFECT_SURFACE_V1_ERROR_SURFACE_DESTROYED,
+                              "Surface destroyed");
+      return;
     }
-    MetaWaylandRegion* region = region_resource ? wl_resource_get_user_data(region_resource) : NULL;
-    set_pending_region(effect->surface, region ? meta_wayland_region_peek_region(region) : NULL);
+
+  pending = meta_wayland_surface_get_pending_state (surface);
+
+  g_clear_pointer (&pending->background_blur_region, mtk_region_unref);
+  if (region_resource)
+    {
+      MetaWaylandRegion *region = wl_resource_get_user_data (region_resource);
+      MtkRegion *mtk_region = meta_wayland_region_peek_region (region);
+
+      pending->background_blur_region = mtk_region_copy (mtk_region);
+    }
+
+  pending->background_blur_region_set = TRUE;
 }
 
-static const struct ext_background_effect_surface_v1_interface surface_impl = {
-    .destroy = destroy_resource,
-    .set_blur_region = set_blur_region,
+static const struct ext_background_effect_surface_v1_interface
+  background_effect_surface_implementation =
+{
+  background_effect_surface_destroy,
+  background_effect_surface_set_blur_region,
 };
 
-static void get_background_effect(struct wl_client* client, struct wl_resource* resource,
-                                  uint32_t id, struct wl_resource* surface_resource) {
-    MetaWaylandSurface* surface = wl_resource_get_user_data(surface_resource);
-    if (g_object_get_data(G_OBJECT(surface), OBJECT_KEY)) {
-        wl_resource_post_error(resource,
-                               EXT_BACKGROUND_EFFECT_MANAGER_V1_ERROR_BACKGROUND_EFFECT_EXISTS,
-                               "Surface already has a background effect object");
-        return;
-    }
-    struct wl_resource* object =
-        wl_resource_create(client, &ext_background_effect_surface_v1_interface, 1, id);
-    if (!object) {
-        wl_client_post_no_memory(client);
-        return;
-    }
-    BackgroundSurface* effect = g_new0(BackgroundSurface, 1);
-    effect->surface = surface;
-    effect->destroy_handler =
-        g_signal_connect(surface, "destroy", G_CALLBACK(surface_destroyed), effect);
-    g_object_set_data(G_OBJECT(surface), OBJECT_KEY, effect);
-    set_pending_region(surface, NULL);
-    wl_resource_set_implementation(object, &surface_impl, effect, free_effect);
+static void
+background_effect_manager_destroy (struct wl_client   *client,
+                                   struct wl_resource *resource)
+{
+  wl_resource_destroy (resource);
 }
 
-static const struct ext_background_effect_manager_v1_interface manager_impl = {
-    .destroy = destroy_resource,
-    .get_background_effect = get_background_effect,
+static void
+on_surface_destroyed (MetaWaylandSurface                 *surface,
+                      MetaWaylandBackgroundEffectSurface *background_effect_surface)
+{
+  background_effect_surface->surface = NULL;
+}
+
+static void
+background_effect_manager_get_background_effect (struct wl_client   *client,
+                                                 struct wl_resource *resource,
+                                                 uint32_t            id,
+                                                 struct wl_resource *surface_resource)
+{
+  MetaWaylandSurface *surface = wl_resource_get_user_data (surface_resource);
+  MetaWaylandBackgroundEffectSurface *background_effect_surface;
+  struct wl_resource *background_effect_surface_resource;
+
+  background_effect_surface =
+    g_object_get_data (G_OBJECT (surface), BACKGROUND_EFFECT_SURFACE_DATA);
+  if (background_effect_surface)
+    {
+      wl_resource_post_error (resource,
+                              EXT_BACKGROUND_EFFECT_MANAGER_V1_ERROR_BACKGROUND_EFFECT_EXISTS,
+                              "Background effect resource already exists on surface");
+      return;
+    }
+
+  background_effect_surface_resource =
+    wl_resource_create (client,
+                        &ext_background_effect_surface_v1_interface,
+                        wl_resource_get_version (resource),
+                        id);
+
+  background_effect_surface = g_new0 (MetaWaylandBackgroundEffectSurface, 1);
+  background_effect_surface->surface = surface;
+  background_effect_surface->destroy_handler_id =
+    g_signal_connect (surface,
+                      "destroy",
+                      G_CALLBACK (on_surface_destroyed),
+                      background_effect_surface);
+
+  g_object_set_data (G_OBJECT (surface),
+                     BACKGROUND_EFFECT_SURFACE_DATA,
+                     background_effect_surface);
+
+  wl_resource_set_implementation (background_effect_surface_resource,
+                                  &background_effect_surface_implementation,
+                                  background_effect_surface,
+                                  background_effect_surface_destructor);
+}
+
+static const struct ext_background_effect_manager_v1_interface
+  background_effect_manager_implementation =
+{
+  background_effect_manager_destroy,
+  background_effect_manager_get_background_effect,
 };
 
-static void bind_manager(struct wl_client* client, void* data, uint32_t version, uint32_t id) {
-    struct wl_resource* resource =
-        wl_resource_create(client, &ext_background_effect_manager_v1_interface, 1, id);
-    if (!resource) {
-        wl_client_post_no_memory(client);
-        return;
+static void
+background_effect_manager_bind (struct wl_client *client,
+                                void             *data,
+                                uint32_t          version,
+                                uint32_t          id)
+{
+  struct wl_resource *resource;
+
+  resource = wl_resource_create (client,
+                                 &ext_background_effect_manager_v1_interface,
+                                 version,
+                                 id);
+  wl_resource_set_implementation (resource,
+                                  &background_effect_manager_implementation,
+                                  NULL,
+                                  NULL);
+
+  ext_background_effect_manager_v1_send_capabilities (
+    resource,
+    EXT_BACKGROUND_EFFECT_MANAGER_V1_CAPABILITY_BLUR);
+}
+
+void
+meta_wayland_init_background_effect (MetaWaylandCompositor *compositor)
+{
+  if (g_signal_lookup ("gnoblin-background-effect-changed", META_TYPE_DISPLAY) == 0)
+    g_signal_new ("gnoblin-background-effect-changed",
+                  META_TYPE_DISPLAY,
+                  G_SIGNAL_RUN_LAST,
+                  0, NULL, NULL, NULL,
+                  G_TYPE_NONE, 1, CLUTTER_TYPE_ACTOR);
+
+  if (!wl_global_create (compositor->wayland_display,
+                         &ext_background_effect_manager_v1_interface,
+                         META_EXT_BACKGROUND_EFFECT_V1_VERSION,
+                         compositor,
+                         background_effect_manager_bind))
+    g_warning ("Failed to create ext_background_effect_manager_v1 global");
+}
+
+void
+meta_wayland_background_effect_apply_state (MetaWaylandSurface      *surface,
+                                            MetaWaylandSurfaceState *state)
+{
+  MetaSurfaceActor *surface_actor;
+  ClutterActor *actor;
+  MtkRegion *region;
+  MtkRegion *previous;
+  MetaDisplay *display;
+
+  if (!state->background_blur_region_set)
+    return;
+
+  surface_actor = meta_wayland_surface_get_actor (surface);
+  if (!surface_actor)
+    return;
+
+  actor = CLUTTER_ACTOR (surface_actor);
+  region = state->background_blur_region
+    ? mtk_region_copy (state->background_blur_region)
+    : mtk_region_create ();
+  previous = g_object_get_data (G_OBJECT (actor),
+                                GNOBLIN_BACKGROUND_EFFECT_REGION);
+  if (previous && mtk_region_equal (previous, region))
+    {
+      mtk_region_unref (region);
+      return;
     }
-    wl_resource_set_implementation(resource, &manager_impl, NULL, NULL);
-    ext_background_effect_manager_v1_send_capabilities(
-        resource, EXT_BACKGROUND_EFFECT_MANAGER_V1_CAPABILITY_BLUR);
+
+  g_object_set_data_full (G_OBJECT (actor),
+                          GNOBLIN_BACKGROUND_EFFECT_REGION,
+                          region,
+                          (GDestroyNotify) mtk_region_unref);
+  display = meta_context_get_display (surface->compositor->context);
+  g_signal_emit_by_name (display, "gnoblin-background-effect-changed", actor);
+  clutter_actor_queue_redraw (actor);
 }
 
-void meta_wayland_init_background_effect(MetaWaylandCompositor* compositor) {
-    if (!gnoblin_config_protocol_enabled("ext-background-effect-v1"))
-        return;
-    g_signal_new("gnoblin-background-effect-changed", META_TYPE_DISPLAY, G_SIGNAL_RUN_LAST, 0, NULL,
-                 NULL, NULL, G_TYPE_NONE, 1, CLUTTER_TYPE_ACTOR);
-    if (!wl_global_create(compositor->wayland_display, &ext_background_effect_manager_v1_interface,
-                          1, NULL, bind_manager))
-        g_error("Failed to register ext-background-effect-v1");
-}
+MtkRegion *
+meta_gnoblin_background_effect_get_region (ClutterActor *actor)
+{
+  MtkRegion *region = g_object_get_data (G_OBJECT (actor),
+                                         GNOBLIN_BACKGROUND_EFFECT_REGION);
 
-void meta_wayland_background_effect_merge_state(MetaWaylandSurfaceState* from,
-                                                MetaWaylandSurfaceState* to) {
-    MtkRegion* region = g_object_steal_data(G_OBJECT(from), REGION_KEY);
-    if (region)
-        g_object_set_data_full(G_OBJECT(to), REGION_KEY, region, (GDestroyNotify)mtk_region_unref);
-}
-
-void meta_wayland_background_effect_apply_state(MetaWaylandSurface* surface,
-                                                MetaWaylandSurfaceState* state) {
-    MtkRegion* region = g_object_steal_data(G_OBJECT(state), REGION_KEY);
-    if (region)
-        g_object_set_data_full(G_OBJECT(surface), REGION_KEY, region,
-                               (GDestroyNotify)mtk_region_unref);
-    region = g_object_get_data(G_OBJECT(surface), REGION_KEY);
-    ClutterActor* actor = CLUTTER_ACTOR(meta_wayland_surface_get_actor(surface));
-    if (!actor || !region)
-        return;
-    MtkRegion* previous = g_object_get_data(G_OBJECT(actor), REGION_KEY);
-    if (previous && mtk_region_equal(region, previous))
-        return;
-    g_object_set_data_full(G_OBJECT(actor), REGION_KEY, mtk_region_ref(region),
-                           (GDestroyNotify)mtk_region_unref);
-    MetaDisplay* display = meta_context_get_display(surface->compositor->context);
-    g_signal_emit_by_name(display, "gnoblin-background-effect-changed", actor);
-    clutter_actor_queue_redraw(actor);
-}
-
-/**
- * meta_gnoblin_background_effect_get_region:
- * @actor: a surface actor
- * Returns: (transfer full) (nullable): committed region in surface-local coordinates;
- *   an empty region explicitly disables blur, NULL means no standard request
- */
-MtkRegion* meta_gnoblin_background_effect_get_region(ClutterActor* actor) {
-    MtkRegion* region = g_object_get_data(G_OBJECT(actor), REGION_KEY);
-    return region ? mtk_region_copy(region) : NULL;
+  return region ? mtk_region_copy (region) : NULL;
 }
