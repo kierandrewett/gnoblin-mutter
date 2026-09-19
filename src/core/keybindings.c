@@ -38,6 +38,7 @@
 #include "core/meta-accel-parse.h"
 #include "core/meta-window-config-private.h"
 #include "core/meta-workspace-manager-private.h"
+#include "compositor/meta-window-drag.h"
 #include "core/workspace-private.h"
 #include "meta/compositor.h"
 #include "meta/prefs.h"
@@ -1402,6 +1403,26 @@ meta_key_binding_has_handler_func (MetaKeyBinding *binding)
   return (!!binding->handler->func || !!binding->handler->default_func);
 }
 
+static gboolean
+is_window_switcher_binding (MetaKeyBinding *binding)
+{
+  static const char *const names[] = {
+    "switch-applications", "switch-applications-backward",
+    "switch-windows", "switch-windows-backward",
+    "switch-group", "switch-group-backward",
+    "cycle-windows", "cycle-windows-backward",
+    "cycle-group", "cycle-group-backward",
+    "switch-monitor", "switch-monitor-backward",
+    NULL,
+  };
+
+  for (const char *const *name = names; *name; name++)
+    if (g_str_equal (binding->name, *name))
+      return TRUE;
+
+  return FALSE;
+}
+
 static ClutterModifierType
 get_modifiers (ClutterEvent *event)
 {
@@ -1435,7 +1456,10 @@ process_event (MetaDisplay          *display,
   if (!binding)
     goto not_found;
 
-  if (!window && binding->flags & META_KEY_BINDING_PER_WINDOW)
+  /* Window operations belong to the active drag; unrelated global shortcuts
+   * remain available, using the normal inhibition and shell-mode checks. */
+  if ((!window || meta_compositor_get_current_window_drag (display->compositor)) &&
+      binding->flags & META_KEY_BINDING_PER_WINDOW)
     goto not_found;
 
   if (binding->flags & META_KEY_BINDING_CUSTOM_TRIGGER)
@@ -1497,6 +1521,19 @@ process_event (MetaDisplay          *display,
       meta_topic (META_DEBUG_KEYBINDINGS,
                   "Running handler for %s",
                   binding->name);
+
+      /* A switcher opens a shell modal grab.  If it is invoked during a
+       * pointer move, that modal can consume the eventual button release
+       * before the compositor's drag grab sees it.  End the old move first;
+       * ordinary global shortcuts remain usable during the drag. */
+      if (is_window_switcher_binding (binding))
+        {
+          MetaWindowDrag *window_drag =
+            meta_compositor_get_current_window_drag (display->compositor);
+          if (window_drag &&
+              meta_grab_op_is_mouse (meta_window_drag_get_grab_op (window_drag)))
+            meta_window_drag_end (window_drag);
+        }
 
       invoke_handler (display, binding->handler, window, event, binding);
       if (!binding->release_pending &&
@@ -1706,6 +1743,23 @@ meta_keybindings_process_event (MetaDisplay        *display,
 
     case CLUTTER_KEY_PRESS:
     case CLUTTER_KEY_RELEASE:
+      if (meta_compositor_get_current_window_drag (display->compositor))
+        {
+          /* Keep drag cancellation, confirmation and directional controls. */
+          switch (clutter_event_get_key_symbol (event))
+            {
+            case CLUTTER_KEY_Escape:
+            case CLUTTER_KEY_Return:
+            case CLUTTER_KEY_KP_Enter:
+            case CLUTTER_KEY_Left:
+            case CLUTTER_KEY_Right:
+            case CLUTTER_KEY_Up:
+            case CLUTTER_KEY_Down:
+              return FALSE;
+            default:
+              break;
+            }
+        }
       return process_key_event (display, window, (ClutterEvent *) event);
 
     default:

@@ -268,8 +268,7 @@ meta_display_handle_event (MetaDisplay        *display,
    * in a keyboard-grabbed mode like moving a window, we don't
    * want to pass the key event to the compositor or Wayland at all.
    */
-  if (!meta_compositor_get_current_window_drag (compositor) &&
-      meta_keybindings_process_event (display, window, event))
+  if (meta_keybindings_process_event (display, window, event))
     return CLUTTER_EVENT_STOP;
 
   /* Do not pass keyboard events to Wayland if key focus is not on the
