@@ -599,6 +599,8 @@ mutter_sources += [
   'wayland/meta-gnoblin-protocols.h',
   'wayland/meta-gnoblin-window-frame.c',
   'wayland/meta-gnoblin-window-frame.h',
+  'wayland/meta-gnoblin-frame-renderer.c',
+  'wayland/meta-gnoblin-frame-renderer.h',
   'wayland/meta-wayland-blur-fade.c',
   'wayland/meta-wayland-blur-fade.h',
   'wayland/meta-wayland-idle-notify.c',

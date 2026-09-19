@@ -19,6 +19,7 @@
  */
 
 #include "config.h"
+#include "wayland/meta-gnoblin-frame-renderer.h"
 
 #include "wayland/meta-wayland-surface-private.h"
 
@@ -492,6 +493,7 @@ meta_wayland_surface_state_clear (MetaWaylandSurfaceState *state)
 {
   MetaWaylandFrameCallback *cb, *next;
 
+  g_object_set_data (G_OBJECT (state), "gnoblin-frame-commit", NULL);
   g_clear_object (&state->texture);
   g_clear_object (&state->drm_syncobj.acquire);
   g_clear_object (&state->drm_syncobj.release);
@@ -695,6 +697,8 @@ meta_wayland_surface_state_merge_into (MetaWaylandSurfaceState *from,
   g_clear_object (&from->drm_syncobj.acquire);
   g_set_object (&to->drm_syncobj.release, from->drm_syncobj.release);
   g_clear_object (&from->drm_syncobj.release);
+
+  meta_gnoblin_frame_renderer_merge_state (from, to);
 
   if (from->has_new_color_state)
     {
