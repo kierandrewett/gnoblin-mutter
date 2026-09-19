@@ -62,7 +62,9 @@ clutter_paint_context_new_for_view (ClutterStageView *view,
   paint_context = g_new0 (ClutterPaintContext, 1);
   g_ref_count_init (&paint_context->ref_count);
   paint_context->view = view;
-  paint_context->redraw_clip = mtk_region_copy (redraw_clip);
+  /* The stage owns this immutable clip until the synchronous paint completes.
+   * Retain it instead of cloning its rectangles for every painted view. */
+  paint_context->redraw_clip = mtk_region_ref ((MtkRegion *) redraw_clip);
   paint_context->clip_frusta = g_array_ref (clip_frusta);
   paint_context->paint_flags = paint_flags;
   g_set_object (&paint_context->framebuffer_color_state,
