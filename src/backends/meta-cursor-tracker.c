@@ -37,6 +37,7 @@
 #include "backends/meta-sprite.h"
 #include "cogl/cogl.h"
 #include "core/display-private.h"
+#include "core/gnoblin-native-control.h"
 #include "clutter/clutter-mutter.h"
 #include "clutter/clutter.h"
 #include "meta/main.h"
@@ -485,7 +486,7 @@ meta_cursor_tracker_set_gnoblin_launch_cursor (MetaCursorTracker *tracker,
   MetaCursorTrackerPrivate *priv =
     meta_cursor_tracker_get_instance_private (tracker);
 
-  if (active && g_strcmp0 (g_getenv ("GNOME_SHELL_SESSION_MODE"), "gnoblin") != 0)
+  if (active && !gnoblin_native_control_is_session (NULL))
     return;
 
   if (active && !priv->gnoblin_launch_cursor)
