@@ -731,6 +731,38 @@ clutter_offscreen_effect_create_texture (ClutterOffscreenEffect *effect,
 }
 
 /**
+ * clutter_offscreen_effect_get_target_rect:
+ * @effect: an offscreen effect
+ * @rect: (out): texture bounds in actor coordinates, including effect padding
+ *
+ * Query from paint_target when mapping texture coordinates back to the actor.
+ * Returns: whether a texture is available
+ */
+gboolean
+clutter_offscreen_effect_get_target_rect (ClutterOffscreenEffect *effect,
+                                          graphene_rect_t       *rect)
+{
+  ClutterOffscreenEffectPrivate *priv =
+    clutter_offscreen_effect_get_instance_private (effect);
+  graphene_matrix_t transform;
+  graphene_rect_t pixels;
+  float unscale;
+
+  if (!priv->texture || !priv->actor)
+    return FALSE;
+  unscale = 1.0f / clutter_actor_get_resource_scale (priv->actor);
+  graphene_matrix_init_scale (&transform, unscale, unscale, 1.0f);
+  graphene_matrix_translate (&transform,
+                            &GRAPHENE_POINT3D_INIT (priv->fbo_offset_x,
+                                                    priv->fbo_offset_y, 0));
+  graphene_rect_init (&pixels, 0, 0,
+                      cogl_texture_get_width (priv->texture),
+                      cogl_texture_get_height (priv->texture));
+  graphene_matrix_transform_bounds (&transform, &pixels, rect);
+  return TRUE;
+}
+
+/**
  * clutter_offscreen_effect_get_target_size:
  * @effect: a #ClutterOffscreenEffect
  * @width: (out): return location for the target width, or %NULL
