@@ -20,6 +20,8 @@
 #include "config.h"
 
 #include "wayland/meta-wayland-activation.h"
+#include "core/util-private.h"
+#include "meta/prefs.h"
 
 #include <glib.h>
 #include <wayland-server.h>
@@ -348,17 +350,21 @@ maybe_activate (MetaWaylandActivation *activation,
                                                             token_str);
     }
 
-  if (!sequence)
+  if (!sequence &&
+      !(meta_is_gnoblin_session () &&
+        meta_prefs_get_focus_new_windows () == G_DESKTOP_FOCUS_NEW_WINDOWS_SMART))
     return TRUE;
 
-  if ((token && token_can_activate (token)) ||
+  if ((meta_is_gnoblin_session () &&
+       meta_prefs_get_focus_new_windows () == G_DESKTOP_FOCUS_NEW_WINDOWS_SMART) ||
+      (token && token_can_activate (token)) ||
       (!token && startup_sequence_is_recent (display, sequence)))
     {
       uint32_t timestamp;
       int32_t workspace_idx;
 
-      workspace_idx = meta_startup_sequence_get_workspace (sequence);
-      timestamp = meta_startup_sequence_get_timestamp (sequence);
+      workspace_idx = sequence ? meta_startup_sequence_get_workspace (sequence) : -1;
+      timestamp = sequence ? meta_startup_sequence_get_timestamp (sequence) : 0;
 
       if (workspace_idx >= 0)
         meta_window_change_workspace_by_index (window, workspace_idx, TRUE);
@@ -371,7 +377,8 @@ maybe_activate (MetaWaylandActivation *activation,
       meta_window_set_demands_attention (window);
     }
 
-  meta_startup_sequence_complete (sequence);
+  if (sequence)
+    meta_startup_sequence_complete (sequence);
 
   return TRUE;
 }

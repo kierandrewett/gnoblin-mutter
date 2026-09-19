@@ -2056,6 +2056,10 @@ intervening_user_event_occurred (MetaWindow *window)
       return TRUE;
     }
 
+  if (meta_is_gnoblin_session () &&
+      meta_prefs_get_focus_new_windows () == G_DESKTOP_FOCUS_NEW_WINDOWS_SMART)
+    return FALSE;
+
   if (!(window->net_wm_user_time_set) && !(window->initial_timestamp_set))
     {
       meta_topic (META_DEBUG_STARTUP,
@@ -3977,6 +3981,12 @@ meta_window_activate_full (MetaWindow     *window,
               "by client type %u.",
               window->desc, timestamp, source_indication);
 
+  /* Smart mode honours activation requests, including after other input or
+   * from another workspace. Strict mode keeps Mutter's timestamp checks. */
+  if (meta_is_gnoblin_session () &&
+      meta_prefs_get_focus_new_windows () == G_DESKTOP_FOCUS_NEW_WINDOWS_SMART)
+    timestamp = meta_display_get_current_time_roundtrip (window->display);
+
   allow_workspace_switch = (timestamp != 0);
   if (timestamp != 0 &&
       XSERVER_TIME_IS_BEFORE (timestamp, window->display->last_user_time))
@@ -4021,7 +4031,8 @@ meta_window_activate_full (MetaWindow     *window,
 
   unminimize_window_and_all_transient_parents (window);
 
-  if (meta_prefs_get_raise_on_click () ||
+  if (meta_is_gnoblin_session () ||
+      meta_prefs_get_raise_on_click () ||
       source_indication == META_CLIENT_TYPE_PAGER)
     meta_window_raise (window);
 

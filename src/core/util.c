@@ -139,6 +139,8 @@ ensure_logfile (void)
     }
 }
 
+#endif
+
 /**
  * meta_gnoblin_layer_anchor:
  * @window: window to inspect
@@ -163,7 +165,12 @@ meta_gnoblin_layer_namespace (MetaWindow *window)
 {
   return g_object_get_data (G_OBJECT (window), "gnoblin-layer-namespace");
 }
-#endif
+
+gboolean
+meta_is_gnoblin_session (void)
+{
+  return g_strcmp0 (g_getenv ("GNOME_SHELL_SESSION_MODE"), "gnoblin") == 0;
+}
 
 gboolean
 meta_is_verbose (void)
