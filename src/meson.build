@@ -597,6 +597,8 @@ mutter_sources += [
   # at build time; registered via meta_gnoblin_init_protocols)
   'wayland/meta-gnoblin-protocols.c',
   'wayland/meta-gnoblin-protocols.h',
+  'wayland/meta-gnoblin-window-frame.c',
+  'wayland/meta-gnoblin-window-frame.h',
   'wayland/meta-wayland-blur-fade.c',
   'wayland/meta-wayland-blur-fade.h',
   'wayland/meta-wayland-idle-notify.c',
@@ -1071,6 +1073,7 @@ wayland_protocols = [
   ['viewporter', 'stable', ],
   ['xdg-activation', 'staging', 1, ],
   ['xdg-dialog', 'staging', 1, ],
+  ['xdg-decoration', 'unstable', 1, ],
   ['xdg-foreign', 'unstable', 1, ],
   ['xdg-foreign', 'unstable', 2, ],
   ['xdg-output', 'unstable', 1, ],

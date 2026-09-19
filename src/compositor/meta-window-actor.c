@@ -20,6 +20,10 @@
 
 #include "config.h"
 
+#ifdef HAVE_WAYLAND
+#include "wayland/meta-gnoblin-window-frame.h"
+#endif
+
 #include <math.h>
 #include <string.h>
 
@@ -1760,6 +1764,7 @@ meta_window_actor_paint_to_bitmap (MetaWindowActor *self,
   CoglBitmap *bitmap = NULL;
   CoglFramebuffer *framebuffer;
   MtkRectangle framebuffer_clip;
+  gboolean has_gnoblin_frame = FALSE;
   float resource_scale;
   float x, y, actor_width, actor_height;
   int img_width, img_height;
@@ -1770,7 +1775,10 @@ meta_window_actor_paint_to_bitmap (MetaWindowActor *self,
   clutter_actor_inhibit_culling (actor);
 
   stex = meta_surface_actor_get_texture (priv->surface);
-  if (!meta_shaped_texture_should_get_via_offscreen (stex) &&
+#ifdef HAVE_WAYLAND
+  has_gnoblin_frame = meta_gnoblin_window_frame_is_active (priv->window);
+#endif
+  if (!has_gnoblin_frame && !meta_shaped_texture_should_get_via_offscreen (stex) &&
       meta_window_actor_is_single_surface_actor (self))
     {
       MtkRectangle *surface_clip = NULL;
@@ -1805,6 +1813,9 @@ meta_window_actor_paint_to_bitmap (MetaWindowActor *self,
     .width = (int) ceilf (actor_width),
     .height = (int) ceilf (actor_height),
   };
+
+  if (has_gnoblin_frame)
+    meta_window_get_frame_rect (priv->window, &framebuffer_clip);
 
   if (clip)
     {

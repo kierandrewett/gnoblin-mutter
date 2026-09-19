@@ -910,8 +910,12 @@ meta_wayland_xdg_toplevel_send_configure (MetaWaylandXdgToplevel         *xdg_to
     }
 
   xdg_toplevel_send_configure (xdg_toplevel->resource,
-                               configuration->width / configuration->scale,
-                               configuration->height / configuration->scale,
+                               configuration->width == 0 ? 0 : MAX (1, configuration->width / configuration->scale -
+                                 configuration->gnoblin_frame.border[1] - configuration->gnoblin_frame.border[3] +
+                                 configuration->gnoblin_frame.crop[1] + configuration->gnoblin_frame.crop[3]),
+                               configuration->height == 0 ? 0 : MAX (1, configuration->height / configuration->scale -
+                                 configuration->gnoblin_frame.border[0] - configuration->gnoblin_frame.border[2] +
+                                 configuration->gnoblin_frame.crop[0] + configuration->gnoblin_frame.crop[2]),
                                &states);
   wl_array_release (&states);
 

@@ -30,6 +30,7 @@
 #include "wayland/meta-wayland-single-pixel-buffer.h"
 #include "wayland/meta-wayland-surface-private.h"
 #include "wayland/meta-window-wayland.h"
+#include "wayland/meta-gnoblin-window-frame.h"
 
 struct _MetaSurfaceContainerActorWayland
 {
@@ -593,6 +594,7 @@ maybe_configure_black_background (MetaWindowActorWayland *self,
   return TRUE;
 }
 
+
 static gboolean
 do_sync_geometry (MetaWindowActorWayland *self)
 {
@@ -607,6 +609,8 @@ do_sync_geometry (MetaWindowActorWayland *self)
 
   if (!clutter_actor_is_mapped (CLUTTER_ACTOR (actor)))
     return FALSE;
+
+  meta_gnoblin_window_frame_sync_actor (window, surface_container);
 
   if (maybe_configure_black_background (self,
                                         &surfaces_width, &surfaces_height,

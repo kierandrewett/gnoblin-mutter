@@ -210,6 +210,7 @@ void
 meta_window_wayland_configure (MetaWindowWayland              *wl_window,
                                MetaWaylandWindowConfiguration *configuration)
 {
+  meta_gnoblin_window_frame_configure (META_WINDOW (wl_window), configuration);
   meta_wayland_surface_configure_notify (wl_window->surface, configuration);
 
   wl_window->pending_configurations =
@@ -1631,6 +1632,10 @@ meta_window_wayland_finish_move_resize (MetaWindow              *window,
 
   g_return_if_fail (!mtk_rectangle_is_empty (&new_geom));
 
+  acked_configuration = acquire_acked_configuration (wl_window, pending,
+                                                     &is_client_resize);
+  meta_gnoblin_window_frame_commit (window, acked_configuration, &new_geom);
+
   /* new_geom is in the logical pixel coordinate space, but MetaWindow wants its
    * rects to represent what in turn will end up on the stage, i.e. we need to
    * scale new_geom to physical pixels given what buffer scale and texture scale
@@ -1665,9 +1670,6 @@ meta_window_wayland_finish_move_resize (MetaWindow              *window,
     }
 
   flags = META_MOVE_RESIZE_WAYLAND_FINISH_MOVE_RESIZE;
-
-  acked_configuration = acquire_acked_configuration (wl_window, pending,
-                                                     &is_client_resize);
 
   if (meta_is_topic_enabled (META_DEBUG_WAYLAND))
     {
@@ -1831,6 +1833,7 @@ meta_window_wayland_finish_move_resize (MetaWindow              *window,
 
   if (window->hidden && meta_wayland_surface_get_buffer (surface))
     meta_window_update_visibility (window);
+  meta_gnoblin_window_frame_emit_changed (window);
 }
 
 void
