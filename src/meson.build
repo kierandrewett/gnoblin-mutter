@@ -11,6 +11,9 @@ mutter_includes = [
 mutter_lib_deps = [
   m_dep,
 ]
+if have_hyprcursor
+  mutter_lib_deps += hyprcursor_dep
+endif
 
 mutter_pkg_deps = [
   gio_unix_dep,
@@ -371,6 +374,10 @@ mutter_sources = [
   'core/workspace.c',
   'core/workspace-private.h',
 ]
+
+if have_hyprcursor
+  mutter_sources += 'backends/gnoblin-hyprcursor.cpp'
+endif
 
 if have_xwayland
   mutter_sources += [

@@ -58,6 +58,7 @@ typedef struct _MetaCursorTrackerPrivate
   MetaBackend *backend;
 
   ClutterCursor *current_cursor;
+  ClutterCursor *gnoblin_launch_cursor;
 
   int cursor_visibility_inhibitors;
 
@@ -163,6 +164,9 @@ meta_cursor_tracker_real_get_sprite (MetaCursorTracker *tracker)
     meta_backend_get_clutter_backend (backend);
   ClutterSeat *seat = clutter_backend_get_default_seat (clutter_backend);
 
+  if (priv->gnoblin_launch_cursor)
+    return priv->gnoblin_launch_cursor;
+
   if (!clutter_seat_is_unfocus_inhibited (seat))
     return NULL;
 
@@ -242,6 +246,7 @@ meta_cursor_tracker_finalize (GObject *object)
     meta_cursor_tracker_get_instance_private (tracker);
 
   g_clear_object (&priv->current_cursor);
+  g_clear_object (&priv->gnoblin_launch_cursor);
   meta_prefs_remove_listener (on_prefs_changed, tracker);
 
   G_OBJECT_CLASS (meta_cursor_tracker_parent_class)->finalize (object);
@@ -464,4 +469,39 @@ meta_cursor_tracker_get_backend (MetaCursorTracker *tracker)
     meta_cursor_tracker_get_instance_private (tracker);
 
   return priv->backend;
+}
+
+/**
+ * meta_cursor_tracker_set_gnoblin_launch_cursor:
+ * @tracker: the cursor tracker
+ * @active: whether to show the themed wait cursor over client cursors
+ *
+ * Changes cursor rendering without a pointer grab or focus change.
+ */
+void
+meta_cursor_tracker_set_gnoblin_launch_cursor (MetaCursorTracker *tracker,
+                                              gboolean           active)
+{
+  MetaCursorTrackerPrivate *priv =
+    meta_cursor_tracker_get_instance_private (tracker);
+
+  if (active && g_strcmp0 (g_getenv ("GNOME_SHELL_SESSION_MODE"), "gnoblin") != 0)
+    return;
+
+  if (active && !priv->gnoblin_launch_cursor)
+    priv->gnoblin_launch_cursor =
+      meta_backend_get_cursor (priv->backend, CLUTTER_CURSOR_WAIT);
+  else if (!active)
+    g_clear_object (&priv->gnoblin_launch_cursor);
+
+  meta_cursor_tracker_notify_cursor_changed (tracker);
+}
+
+gboolean
+meta_cursor_tracker_get_gnoblin_launch_cursor (MetaCursorTracker *tracker)
+{
+  MetaCursorTrackerPrivate *priv =
+    meta_cursor_tracker_get_instance_private (tracker);
+
+  return priv->gnoblin_launch_cursor != NULL;
 }

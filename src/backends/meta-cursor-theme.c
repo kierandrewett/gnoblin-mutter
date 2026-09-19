@@ -23,6 +23,9 @@
 
 #include "backends/meta-backend-private.h"
 #include "backends/meta-cursor-xcursor.h"
+#ifdef HAVE_HYPRCURSOR
+#include "backends/gnoblin-hyprcursor.h"
+#endif
 
 enum
 {
@@ -173,5 +176,8 @@ meta_cursor_theme_get_cursor (MetaCursorTheme   *cursor_theme,
 void
 meta_cursor_theme_reset (MetaCursorTheme *cursor_theme)
 {
+#ifdef HAVE_HYPRCURSOR
+  gnoblin_hyprcursor_invalidate ();
+#endif
   g_hash_table_remove_all (cursor_theme->cursors);
 }

@@ -60,3 +60,10 @@ void           meta_cursor_tracker_inhibit_cursor_visibility (MetaCursorTracker 
 
 META_EXPORT
 void           meta_cursor_tracker_uninhibit_cursor_visibility (MetaCursorTracker *tracker);
+
+META_EXPORT
+void meta_cursor_tracker_set_gnoblin_launch_cursor (MetaCursorTracker *tracker,
+                                                   gboolean           active);
+
+META_EXPORT
+gboolean meta_cursor_tracker_get_gnoblin_launch_cursor (MetaCursorTracker *tracker);

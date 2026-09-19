@@ -27,6 +27,7 @@
 
 /* Have GL for rendering */
 #mesondefine HAVE_GL
+#mesondefine HAVE_HYPRCURSOR
 
 /* Have GLES 2.0 for rendering */
 #mesondefine HAVE_GLES2

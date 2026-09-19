@@ -19,6 +19,9 @@
 #include "config.h"
 
 #include "backends/meta-cursor-xcursor.h"
+#ifdef HAVE_HYPRCURSOR
+#include "backends/gnoblin-hyprcursor.h"
+#endif
 
 #include "backends/meta-backend-private.h"
 #include "backends/meta-logical-monitor-private.h"
@@ -178,6 +181,18 @@ load_cursor_on_client (MetaCursorXcursor *cursor_xcursor,
 
   cursor_names[0] = clutter_cursor_type_to_name (cursor);
   cursor_names[1] = meta_cursor_get_legacy_name (cursor);
+
+#ifdef HAVE_HYPRCURSOR
+  for (i = 0; i < G_N_ELEMENTS (cursor_names); i++)
+    {
+      xcursor_images =
+        gnoblin_hyprcursor_load (meta_cursor_get_theme_name (meta_cursor),
+                                 cursor_names[i],
+                                 meta_cursor_get_size (meta_cursor) * scale);
+      if (xcursor_images)
+        return xcursor_images;
+    }
+#endif
 
   for (i = 0; i < G_N_ELEMENTS (cursor_names); i++)
     {

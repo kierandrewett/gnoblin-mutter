@@ -116,6 +116,12 @@ subproject('gvdb')
 
 m_dep = cc.find_library('m', required: true)
 graphene_dep = dependency('graphene-gobject-1.0', version: graphene_req)
+hyprcursor_dep = dependency('hyprcursor', version: '>= 0.1.11', required: get_option('hyprcursor'))
+have_hyprcursor = hyprcursor_dep.found()
+if have_hyprcursor
+  add_languages('cpp')
+  add_project_arguments('-std=c++20', language: 'cpp')
+endif
 pixman_dep = dependency('pixman-1', version: pixman_req)
 gsettings_desktop_schemas_dep = dependency('gsettings-desktop-schemas',
                                            version: gsettings_desktop_schemas_req)
@@ -536,6 +542,7 @@ cc.compiles('void main (void) { __builtin_ffsl (0); __builtin_popcountl (0); }')
 have_eventfd = cc.has_header('sys/eventfd.h')
 
 cdata = configuration_data()
+cdata.set('HAVE_HYPRCURSOR', have_hyprcursor)
 cdata.set_quoted('GETTEXT_PACKAGE', gettext_package)
 cdata.set_quoted('VERSION', meson.project_version())
 cdata.set_quoted('PACKAGE_NAME', meson.project_name())
