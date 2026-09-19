@@ -23,6 +23,7 @@
 #include <wayland-server.h>
 
 #include "ext-background-effect-v1-server-protocol.h"
+#include "core/gnoblin-native-control.h"
 #include "compositor/meta-surface-actor-wayland.h"
 #include "meta/display.h"
 #include "meta/meta-context.h"
@@ -214,6 +215,9 @@ background_effect_manager_bind (struct wl_client *client,
 void
 meta_wayland_init_background_effect (MetaWaylandCompositor *compositor)
 {
+  if (!gnoblin_native_control_protocol_enabled ("ext-background-effect-v1"))
+    return;
+
   if (g_signal_lookup ("gnoblin-background-effect-changed", META_TYPE_DISPLAY) == 0)
     g_signal_new ("gnoblin-background-effect-changed",
                   META_TYPE_DISPLAY,
