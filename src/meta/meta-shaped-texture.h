@@ -58,4 +58,10 @@ CoglBitmap * meta_shaped_texture_paint_to_bitmap (MetaShapedTexture *stex,
                                                   MtkRectangle      *clip,
                                                   CoglPixelFormat    format);
 
+META_EXPORT
+GBytes * meta_shaped_texture_get_pixels (MetaShapedTexture *stex,
+                                         int               *width,
+                                         int               *height,
+                                         GError           **error);
+
 G_END_DECLS

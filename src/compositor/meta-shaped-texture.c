@@ -1600,6 +1600,68 @@ meta_shaped_texture_paint_to_bitmap (MetaShapedTexture *stex,
   return bitmap;
 }
 
+/**
+ * meta_shaped_texture_get_pixels:
+ * @stex: a #MetaShapedTexture
+ * @width: (out): output width in pixels
+ * @height: (out): output height in pixels
+ * @error: return location for an error
+ *
+ * Reads client content without painting its actor or running actor effects.
+ *
+ * Returns: (transfer full): tightly packed premultiplied RGBA bytes
+ */
+GBytes *
+meta_shaped_texture_get_pixels (MetaShapedTexture *stex,
+                                int               *width,
+                                int               *height,
+                                GError           **error)
+{
+  g_autoptr (CoglBitmap) bitmap = NULL;
+  const uint8_t *source;
+  g_autofree uint8_t *pixels = NULL;
+  int rowstride;
+  gsize size;
+
+  *width = 0;
+  *height = 0;
+  bitmap = meta_shaped_texture_paint_to_bitmap (
+    stex, NULL, COGL_PIXEL_FORMAT_RGBA_8888_PRE);
+  if (!bitmap)
+    {
+      g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
+                           "Client pixels are unavailable for direct readback");
+      return NULL;
+    }
+
+  *width = cogl_bitmap_get_width (bitmap);
+  *height = cogl_bitmap_get_height (bitmap);
+  if (*width <= 0 || *height <= 0 ||
+      (gint64) *width * *height > 16000000)
+    {
+      *width = 0;
+      *height = 0;
+      g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
+                           "Client dimensions are empty or exceed sampling limit");
+      return NULL;
+    }
+
+  source = cogl_bitmap_map (bitmap, COGL_BUFFER_ACCESS_READ, 0, error);
+  if (!source)
+    return NULL;
+
+  rowstride = cogl_bitmap_get_rowstride (bitmap);
+  size = (gsize) *width * *height * 4;
+  pixels = g_malloc (size);
+  for (int y = 0; y < *height; y++)
+    memcpy (pixels + (gsize) y * *width * 4,
+            source + (gsize) y * rowstride,
+            (gsize) *width * 4);
+  cogl_bitmap_unmap (bitmap);
+
+  return g_bytes_new_take (g_steal_pointer (&pixels), size);
+}
+
 MetaShapedTexture *
 meta_shaped_texture_new (ClutterContext    *clutter_context,
                          ClutterColorState *color_state)
