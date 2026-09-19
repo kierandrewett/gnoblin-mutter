@@ -121,3 +121,5 @@ META_EXPORT
 GVariant *meta_gnoblin_window_frame_get (MetaWindow *window);
 META_EXPORT
 void meta_gnoblin_window_frame_style (MetaWindow *window, GVariant *options);
+META_EXPORT
+gboolean meta_gnoblin_frame_renderers_configure (GVariant *services, gboolean restart, GError **error);
