@@ -1250,7 +1250,7 @@ meta_window_actor_x11_get_paint_volume (ClutterActor       *actor,
   MetaWindowActorX11 *actor_x11 = META_WINDOW_ACTOR_X11 (actor);
   MetaWindow *window;
   gboolean appears_focused;
-  MetaSurfaceActor *surface;
+  ClutterActor *child;
 
   /* The paint volume is computed before paint functions are called
    * so our bounds might not be updated yet. Force an update. */
@@ -1279,13 +1279,20 @@ meta_window_actor_x11_get_paint_volume (ClutterActor       *actor,
       clutter_paint_volume_union_box (volume, &shadow_box);
     }
 
-  surface = meta_window_actor_get_surface (META_WINDOW_ACTOR (actor_x11));
-  if (surface)
+  /* X11 window actors normally contain only the client surface.  Gnoblin
+   * decorations are regular children, though, and the corner shadow is
+   * deliberately larger than the window allocation.  Include every visible
+   * child so actor movement damages the old and new decoration bounds. */
+  for (child = clutter_actor_get_first_child (actor);
+       child != NULL;
+       child = clutter_actor_get_next_sibling (child))
     {
-      ClutterActor *surface_actor = CLUTTER_ACTOR (surface);
       g_autoptr (ClutterPaintVolume) child_volume = NULL;
 
-      child_volume = clutter_actor_get_transformed_paint_volume (surface_actor,
+      if (!clutter_actor_is_visible (child))
+        continue;
+
+      child_volume = clutter_actor_get_transformed_paint_volume (child,
                                                                  actor);
       if (!child_volume)
         return FALSE;
