@@ -2545,24 +2545,46 @@ meta_wayland_xdg_positioner_to_placement (MetaWaylandXdgPositioner *xdg_position
                   parent_rect.height =
                     configuration->height / configuration->scale;
                 }
+              meta_gnoblin_window_frame_rect_to_client (parent_window,
+                                                         configuration,
+                                                         &parent_rect);
             }
           else if (xdg_positioner->has_parent_size)
             {
+              meta_gnoblin_window_frame_rect_to_client (parent_window, NULL,
+                                                         &parent_rect);
               meta_rectangle_resize_with_gravity (&parent_rect,
                                                   &parent_rect,
                                                   configuration->gravity,
                                                   xdg_positioner->parent_width,
                                                   xdg_positioner->parent_height);
             }
+          else
+            {
+              meta_gnoblin_window_frame_rect_to_client (parent_window, NULL,
+                                                         &parent_rect);
+            }
+        }
+      else
+        {
+          meta_gnoblin_window_frame_rect_to_client (parent_window, NULL,
+                                                     &parent_rect);
         }
     }
   else if (xdg_positioner->has_parent_size)
     {
+      meta_gnoblin_window_frame_rect_to_client (parent_window, NULL,
+                                                 &parent_rect);
       meta_rectangle_resize_with_gravity (&parent_rect,
                                           &parent_rect,
                                           META_GRAVITY_SOUTH_EAST,
                                           xdg_positioner->parent_width,
                                           xdg_positioner->parent_height);
+    }
+  else
+    {
+      meta_gnoblin_window_frame_rect_to_client (parent_window, NULL,
+                                                 &parent_rect);
     }
 
   return (MetaPlacementRule) {
