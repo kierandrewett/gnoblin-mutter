@@ -36,6 +36,7 @@
 #include "wayland/meta-wayland-data-offer.h"
 #include "wayland/meta-wayland-data-offer-primary.h"
 #include "wayland/meta-wayland-private.h"
+#include "wayland/meta-wayland-session-lock.h"
 
 static MetaDisplay *
 display_from_offer (MetaWaylandDataOffer *offer)
@@ -71,6 +72,14 @@ primary_offer_receive (struct wl_client   *client,
   GOutputStream *stream;
   GList *mime_types;
   gboolean found;
+
+  /* Do not let a primary-selection offer created before lock remain a read
+   * capability after the focused client has been revoked. */
+  if (meta_wayland_session_lock_is_active (offer->compositor))
+    {
+      close (fd);
+      return;
+    }
 
   mime_types = meta_selection_get_mimetypes (meta_display_get_selection (display),
                                              META_SELECTION_PRIMARY);

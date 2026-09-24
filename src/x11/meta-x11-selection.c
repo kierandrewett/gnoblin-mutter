@@ -20,9 +20,12 @@
 #include "config.h"
 
 #include "core/meta-selection-private.h"
+#include "meta/meta-context.h"
 #include "meta/meta-selection-source-memory.h"
+#include "meta/meta-wayland-compositor.h"
 #include "mtk/mtk.h"
 #include "mtk/mtk-x11.h"
+#include "wayland/meta-wayland-session-lock.h"
 #include "x11/meta-selection-source-x11-private.h"
 #include "x11/meta-x11-selection-output-stream-private.h"
 #include "x11/meta-x11-selection-private.h"
@@ -230,6 +233,16 @@ meta_x11_selection_handle_selection_request (MetaX11Display *x11_display,
     return FALSE;
   if (x11_display->selection.xwindow != event->owner)
     return FALSE;
+
+  MetaContext *context = meta_display_get_context (display);
+  MetaWaylandCompositor *compositor =
+    meta_context_get_wayland_compositor (context);
+
+  if (compositor && meta_wayland_session_lock_is_active (compositor))
+    {
+      send_selection_notify (x11_display, event, FALSE);
+      return TRUE;
+    }
 
   selection = meta_display_get_selection (display);
 

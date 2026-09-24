@@ -48,6 +48,7 @@
 #include "wayland/meta-wayland-pointer.h"
 #include "wayland/meta-wayland-private.h"
 #include "wayland/meta-wayland-seat.h"
+#include "wayland/meta-wayland-session-lock.h"
 #include "wayland/meta-wayland-toplevel-drag.h"
 #include "wayland/meta-wayland-types.h"
 
@@ -874,6 +875,22 @@ data_device_start_drag (struct wl_client  *client,
   ClutterSprite *sprite;
   float x, y;
 
+  /* Never begin a DnD transfer beneath the compositor-owned cover.  The
+   * input embargo handles normal initiation, but this guard also covers
+   * protocol requests queued immediately before the transition. */
+  if (meta_wayland_session_lock_is_active (meta_wayland_seat_get_compositor (seat)))
+    {
+      if (source_resource)
+        {
+          MetaWaylandDataSource *source =
+            wl_resource_get_user_data (source_resource);
+
+          if (source)
+            meta_wayland_data_source_cancel (source);
+        }
+      return;
+    }
+
   if (origin_resource)
     surface = wl_resource_get_user_data (origin_resource);
 
@@ -1142,6 +1159,14 @@ data_device_set_selection (struct wl_client   *client,
                                  "cannot set drag-and-drop source as selection");
           return;
         }
+    }
+
+  if (meta_wayland_session_lock_is_active (
+        meta_wayland_seat_get_compositor (data_device->seat)))
+    {
+      if (source)
+        meta_wayland_data_source_cancel (source);
+      return;
     }
 
   if (wl_resource_get_client (resource) != data_device->focus_client)

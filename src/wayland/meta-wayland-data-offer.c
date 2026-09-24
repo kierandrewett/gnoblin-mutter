@@ -35,6 +35,7 @@
 #include "wayland/meta-wayland-data-device.h"
 #include "wayland/meta-wayland-data-offer.h"
 #include "wayland/meta-wayland-private.h"
+#include "wayland/meta-wayland-session-lock.h"
 
 #define ALL_ACTIONS (WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY | \
                      WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE | \
@@ -47,6 +48,12 @@ display_from_offer (MetaWaylandDataOffer *offer)
     meta_wayland_compositor_get_context (offer->compositor);
 
   return meta_context_get_display (context);
+}
+
+static gboolean
+session_lock_embargoes_offer (MetaWaylandDataOffer *offer)
+{
+  return meta_wayland_session_lock_is_active (offer->compositor);
 }
 
 static void
@@ -94,6 +101,14 @@ data_offer_receive (struct wl_client *client, struct wl_resource *resource,
   MetaSelectionType selection_type;
   GList *mime_types;
   gboolean found;
+
+  /* Old offers are capabilities too: an unfocused client can retain one
+   * across the lock transition and ask it to write data into a new fd. */
+  if (session_lock_embargoes_offer (offer))
+    {
+      close (fd);
+      return;
+    }
 
   selection_type = offer->selection_type;
   mime_types = meta_selection_get_mimetypes (meta_display_get_selection (display),

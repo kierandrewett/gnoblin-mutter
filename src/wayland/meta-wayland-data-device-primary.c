@@ -35,6 +35,7 @@
 #include "wayland/meta-wayland-dnd-surface.h"
 #include "wayland/meta-wayland-pointer.h"
 #include "wayland/meta-wayland-private.h"
+#include "wayland/meta-wayland-session-lock.h"
 #include "wayland/meta-wayland-seat.h"
 
 #include "primary-selection-unstable-v1-server-protocol.h"
@@ -179,6 +180,14 @@ primary_device_set_selection (struct wl_client   *client,
 
   if (source_resource)
     source = wl_resource_get_user_data (source_resource);
+
+  if (meta_wayland_session_lock_is_active (
+        meta_wayland_seat_get_compositor (data_device->seat)))
+    {
+      if (source)
+        meta_wayland_data_source_cancel (source);
+      return;
+    }
 
   if (wl_resource_get_client (resource) != data_device->focus_client)
     {
