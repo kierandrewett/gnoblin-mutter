@@ -1258,8 +1258,6 @@ meta_wayland_pointer_update_session_lock (MetaWaylandPointer *pointer,
                                           const ClutterEvent *event,
                                           MetaWaylandSurface *surface)
 {
-  MetaWaylandInputDevice *input_device = META_WAYLAND_INPUT_DEVICE (pointer);
-  MetaWaylandSeat *seat = meta_wayland_input_device_get_seat (input_device);
   MetaBackend *backend = backend_from_pointer (pointer);
   ClutterBackend *clutter_backend = meta_backend_get_clutter_backend (backend);
   ClutterStage *stage = CLUTTER_STAGE (meta_backend_get_stage (backend));

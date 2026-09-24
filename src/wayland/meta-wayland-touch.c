@@ -355,11 +355,14 @@ meta_wayland_touch_update_session_lock (MetaWaylandTouch   *touch,
   if (event_type == CLUTTER_TOUCH_BEGIN && !touch_info)
     {
       touch_info = touch_get_info (touch, sequence, TRUE);
-      touch_info->touch_surface = touch_surface_get (touch, surface);
+      touch_info->current_surface = surface;
+      touch_info->focus_surface = touch_surface_get (touch, surface);
       clutter_event_get_coords (event, &touch_info->start_x, &touch_info->start_y);
     }
   if (!touch_info)
     return;
+
+  meta_wayland_touch_info_set_current_surface (touch_info, surface);
 
   if (event_type == CLUTTER_TOUCH_BEGIN || event_type == CLUTTER_TOUCH_END)
     {
@@ -370,7 +373,7 @@ meta_wayland_touch_update_session_lock (MetaWaylandTouch   *touch,
         touch->latest_touch_down_serial = touch_info->slot_serial;
     }
 
-  touch_get_relative_coordinates (touch, surface, event,
+  touch_get_relative_coordinates (touch, touch_info->focus_surface->surface, event,
                                   &touch_info->x, &touch_info->y);
   touch_info->updated = TRUE;
 }
