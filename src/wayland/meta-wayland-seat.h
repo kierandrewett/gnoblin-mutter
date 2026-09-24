@@ -79,7 +79,8 @@ gboolean meta_wayland_seat_handle_event (MetaWaylandSeat *seat,
  * session input because it intentionally skips DnD, popup, and grab handlers.
  */
 gboolean meta_wayland_seat_handle_session_lock_event (MetaWaylandSeat    *seat,
-                                                      const ClutterEvent *event);
+                                                      const ClutterEvent *event,
+                                                      MetaWaylandSurface *surface);
 
 void meta_wayland_seat_set_input_focus (MetaWaylandSeat    *seat,
                                         MetaWaylandSurface *surface);

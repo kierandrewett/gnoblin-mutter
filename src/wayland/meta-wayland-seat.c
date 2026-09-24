@@ -688,12 +688,39 @@ meta_wayland_seat_handle_event (MetaWaylandSeat *seat,
 
 gboolean
 meta_wayland_seat_handle_session_lock_event (MetaWaylandSeat    *seat,
-                                             const ClutterEvent *event)
+                                             const ClutterEvent *event,
+                                             MetaWaylandSurface *surface)
 {
+  ClutterEventType event_type = clutter_event_type (event);
+
+  g_return_val_if_fail (surface != NULL, FALSE);
+
   /* A lock route must not chain into normal-session event handlers.  In
    * particular, a PROPAGATE result could otherwise reach DnD, constraints,
    * popups, or an Xwayland keyboard grab.  The session-lock controller sets
    * focus only to a mapped lock role before calling this entry point. */
+  meta_wayland_seat_set_input_focus (seat, surface);
+  meta_wayland_keyboard_set_focus (seat->keyboard, surface);
+  meta_wayland_text_input_set_focus (seat->text_input, surface);
+
+  if (event_type == CLUTTER_TOUCH_BEGIN ||
+      event_type == CLUTTER_TOUCH_UPDATE ||
+      event_type == CLUTTER_TOUCH_END)
+    meta_wayland_touch_update_session_lock (seat->touch, event, surface);
+  else if (event_type == CLUTTER_MOTION ||
+           event_type == CLUTTER_BUTTON_PRESS ||
+           event_type == CLUTTER_BUTTON_RELEASE ||
+           event_type == CLUTTER_SCROLL)
+    {
+      /* Update coordinates, then overwrite normal hit-test focus with the
+       * verified lock role before delivery. */
+      meta_wayland_seat_update (seat, event);
+      meta_wayland_pointer_focus_session_lock_surface (seat->pointer, surface);
+    }
+
+  if (is_tablet_event (seat, event))
+    return TRUE;
+
   return meta_wayland_seat_handle_event_internal (seat, event);
 }
 

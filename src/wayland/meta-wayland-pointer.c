@@ -1243,6 +1243,17 @@ meta_wayland_pointer_focus_surface (MetaWaylandPointer *pointer,
 }
 
 void
+meta_wayland_pointer_focus_session_lock_surface (MetaWaylandPointer *pointer,
+                                                 MetaWaylandSurface *surface)
+{
+  /* The session-lock controller has already checked that surface is a mapped
+   * role of its active lock.  Do not apply normal-window liveness policy here:
+   * lock roles do not participate in normal focus arbitration. */
+  meta_wayland_pointer_set_current (pointer, surface);
+  meta_wayland_pointer_set_focus (pointer, surface);
+}
+
+void
 meta_wayland_pointer_get_relative_coordinates (MetaWaylandPointer *pointer,
 					       MetaWaylandSurface *surface,
 					       float              *x,

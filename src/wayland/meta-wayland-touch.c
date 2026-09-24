@@ -342,6 +342,39 @@ meta_wayland_touch_update (MetaWaylandTouch   *touch,
   touch_info->updated = TRUE;
 }
 
+void
+meta_wayland_touch_update_session_lock (MetaWaylandTouch   *touch,
+                                        const ClutterEvent *event,
+                                        MetaWaylandSurface *surface)
+{
+  MetaWaylandTouchInfo *touch_info;
+  ClutterEventSequence *sequence = clutter_event_get_event_sequence (event);
+  ClutterEventType event_type = clutter_event_type (event);
+
+  touch_info = touch_get_info (touch, sequence, FALSE);
+  if (event_type == CLUTTER_TOUCH_BEGIN && !touch_info)
+    {
+      touch_info = touch_get_info (touch, sequence, TRUE);
+      touch_info->touch_surface = touch_surface_get (touch, surface);
+      clutter_event_get_coords (event, &touch_info->start_x, &touch_info->start_y);
+    }
+  if (!touch_info)
+    return;
+
+  if (event_type == CLUTTER_TOUCH_BEGIN || event_type == CLUTTER_TOUCH_END)
+    {
+      MetaWaylandInputDevice *input_device = META_WAYLAND_INPUT_DEVICE (touch);
+
+      touch_info->slot_serial = meta_wayland_input_device_next_serial (input_device);
+      if (event_type == CLUTTER_TOUCH_BEGIN)
+        touch->latest_touch_down_serial = touch_info->slot_serial;
+    }
+
+  touch_get_relative_coordinates (touch, surface, event,
+                                  &touch_info->x, &touch_info->y);
+  touch_info->updated = TRUE;
+}
+
 static void
 handle_touch_begin (MetaWaylandTouch   *touch,
                     const ClutterEvent *event)

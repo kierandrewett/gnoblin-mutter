@@ -54,6 +54,10 @@ void meta_wayland_touch_disable (MetaWaylandTouch *touch);
 void meta_wayland_touch_update (MetaWaylandTouch   *touch,
                                 const ClutterEvent *event);
 
+void meta_wayland_touch_update_session_lock (MetaWaylandTouch   *touch,
+                                             const ClutterEvent *event,
+                                             MetaWaylandSurface *surface);
+
 gboolean meta_wayland_touch_handle_event (MetaWaylandTouch   *touch,
                                           const ClutterEvent *event);
 
