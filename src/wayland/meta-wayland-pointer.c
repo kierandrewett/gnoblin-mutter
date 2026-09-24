@@ -1117,8 +1117,9 @@ focus_surface_alive_notify (MetaWindow         *window,
 }
 
 static void
-meta_wayland_pointer_set_focus (MetaWaylandPointer *pointer,
-                                MetaWaylandSurface *surface)
+meta_wayland_pointer_set_focus_full (MetaWaylandPointer *pointer,
+                                     MetaWaylandSurface *surface,
+                                     gboolean            allow_hidden_cursor)
 {
   MetaWaylandInputDevice *input_device = META_WAYLAND_INPUT_DEVICE (pointer);
   MetaBackend *backend = backend_from_pointer (pointer);
@@ -1132,6 +1133,7 @@ meta_wayland_pointer_set_focus (MetaWaylandPointer *pointer,
 
   g_return_if_fail (meta_cursor_tracker_get_pointer_visible (cursor_tracker) ||
                     clutter_seat_is_unfocus_inhibited (clutter_seat) ||
+                    allow_hidden_cursor ||
                     surface == NULL);
 
   if (pointer->focus_surface == surface)
@@ -1219,6 +1221,13 @@ meta_wayland_pointer_set_focus (MetaWaylandPointer *pointer,
   g_signal_emit (pointer, signals[FOCUS_SURFACE_CHANGED], 0);
 }
 
+static void
+meta_wayland_pointer_set_focus (MetaWaylandPointer *pointer,
+                                MetaWaylandSurface *surface)
+{
+  meta_wayland_pointer_set_focus_full (pointer, surface, FALSE);
+}
+
 void
 meta_wayland_pointer_focus_surface (MetaWaylandPointer *pointer,
                                     MetaWaylandSurface *surface)
@@ -1248,9 +1257,9 @@ meta_wayland_pointer_focus_session_lock_surface (MetaWaylandPointer *pointer,
 {
   /* The session-lock controller has already checked that surface is a mapped
    * role of its active lock.  Do not apply normal-window liveness policy here:
-   * lock roles do not participate in normal focus arbitration. */
+  * lock roles do not participate in normal focus arbitration. */
   meta_wayland_pointer_set_current (pointer, surface);
-  meta_wayland_pointer_set_focus (pointer, surface);
+  meta_wayland_pointer_set_focus_full (pointer, surface, TRUE);
 }
 
 void
