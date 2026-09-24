@@ -73,6 +73,14 @@ void meta_wayland_seat_update (MetaWaylandSeat    *seat,
 gboolean meta_wayland_seat_handle_event (MetaWaylandSeat *seat,
                                          const ClutterEvent *event);
 
+/* Bypass the normal MetaWaylandInput handler chain for a compositor-owned
+ * session-lock route.  The caller must have validated a mapped lock role and
+ * installed its focus first; this function must never be used for ordinary
+ * session input because it intentionally skips DnD, popup, and grab handlers.
+ */
+gboolean meta_wayland_seat_handle_session_lock_event (MetaWaylandSeat    *seat,
+                                                      const ClutterEvent *event);
+
 void meta_wayland_seat_set_input_focus (MetaWaylandSeat    *seat,
                                         MetaWaylandSurface *surface);
 

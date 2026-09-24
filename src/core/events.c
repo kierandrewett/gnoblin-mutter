@@ -34,6 +34,7 @@
 #include "core/window-private.h"
 #include "meta/meta-backend.h"
 #include "wayland/meta-wayland-private.h"
+#include "wayland/meta-wayland-session-lock.h"
 
 #include "backends/native/meta-backend-native.h"
 
@@ -144,6 +145,16 @@ meta_display_handle_event (MetaDisplay        *display,
   has_grab = stage_has_grab (display);
 
   event_type = clutter_event_type (event);
+
+#ifdef HAVE_WAYLAND
+  /* A stage grab is not early enough for a session lock: by then input has
+   * already reached captured-input hooks, IM, accessibility, gestures, and
+   * global keybindings.  The lock filter is an embargo and must remain ahead
+   * of every normal-session consumer below. */
+  if (wayland_compositor &&
+      meta_wayland_session_lock_filter_event (wayland_compositor, event))
+    return CLUTTER_EVENT_STOP;
+#endif
 
   if (meta_display_process_captured_input (display, event))
     return CLUTTER_EVENT_STOP;

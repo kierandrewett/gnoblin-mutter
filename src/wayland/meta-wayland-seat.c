@@ -686,6 +686,17 @@ meta_wayland_seat_handle_event (MetaWaylandSeat *seat,
   return meta_wayland_input_handle_event (seat->input_handler, event);
 }
 
+gboolean
+meta_wayland_seat_handle_session_lock_event (MetaWaylandSeat    *seat,
+                                             const ClutterEvent *event)
+{
+  /* A lock route must not chain into normal-session event handlers.  In
+   * particular, a PROPAGATE result could otherwise reach DnD, constraints,
+   * popups, or an Xwayland keyboard grab.  The session-lock controller sets
+   * focus only to a mapped lock role before calling this entry point. */
+  return meta_wayland_seat_handle_event_internal (seat, event);
+}
+
 MetaWaylandInput *
 meta_wayland_seat_get_input (MetaWaylandSeat *seat)
 {
