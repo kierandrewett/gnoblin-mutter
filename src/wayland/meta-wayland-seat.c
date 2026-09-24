@@ -712,10 +712,7 @@ meta_wayland_seat_handle_session_lock_event (MetaWaylandSeat    *seat,
            event_type == CLUTTER_BUTTON_RELEASE ||
            event_type == CLUTTER_SCROLL)
     {
-      /* Update coordinates, then overwrite normal hit-test focus with the
-       * verified lock role before delivery. */
-      meta_wayland_seat_update (seat, event);
-      meta_wayland_pointer_focus_session_lock_surface (seat->pointer, surface);
+      meta_wayland_pointer_update_session_lock (seat->pointer, event, surface);
     }
 
   if (is_tablet_event (seat, event))

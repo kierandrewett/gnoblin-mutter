@@ -1254,6 +1254,36 @@ meta_wayland_pointer_focus_session_lock_surface (MetaWaylandPointer *pointer,
 }
 
 void
+meta_wayland_pointer_update_session_lock (MetaWaylandPointer *pointer,
+                                          const ClutterEvent *event,
+                                          MetaWaylandSurface *surface)
+{
+  MetaWaylandInputDevice *input_device = META_WAYLAND_INPUT_DEVICE (pointer);
+  MetaWaylandSeat *seat = meta_wayland_input_device_get_seat (input_device);
+  MetaBackend *backend = backend_from_pointer (pointer);
+  ClutterBackend *clutter_backend = meta_backend_get_clutter_backend (backend);
+  ClutterStage *stage = CLUTTER_STAGE (meta_backend_get_stage (backend));
+  ClutterEventType event_type = clutter_event_type (event);
+
+  /* Never call meta_wayland_pointer_update() here: it repicks the normal
+   * scene and can broadcast an enter to an unlocked client before the lock
+   * route takes control. */
+  pointer->sprite = clutter_backend_get_sprite (clutter_backend, stage, event);
+  meta_wayland_pointer_focus_session_lock_surface (pointer, surface);
+
+  if (event_type == CLUTTER_BUTTON_PRESS && pointer->button_count == 0)
+    meta_wayland_pointer_set_implicit_grab_surface (pointer, surface);
+  if (event_type == CLUTTER_MOTION ||
+      event_type == CLUTTER_BUTTON_PRESS ||
+      event_type == CLUTTER_BUTTON_RELEASE)
+    {
+      pointer->button_count = count_buttons (event);
+      if (event_type == CLUTTER_BUTTON_RELEASE && pointer->button_count == 0)
+        meta_wayland_pointer_set_implicit_grab_surface (pointer, NULL);
+    }
+}
+
+void
 meta_wayland_pointer_get_relative_coordinates (MetaWaylandPointer *pointer,
 					       MetaWaylandSurface *surface,
 					       float              *x,
