@@ -106,6 +106,11 @@ void meta_display_apply_gnoblin_input_config (MetaDisplay *display,
                                               GVariant    *input);
 
 META_EXPORT
+gboolean meta_display_dispatch_gnoblin_event (MetaDisplay *display,
+                                          const char  *event,
+                                          GVariant    *payload);
+
+META_EXPORT
 MetaWindow *meta_display_get_focus_window (MetaDisplay *display);
 
 META_EXPORT

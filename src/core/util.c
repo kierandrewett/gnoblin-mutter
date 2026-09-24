@@ -683,3 +683,24 @@ meta_encode_hex (gpointer data,
 
   return g_string_free_and_steal (encoded);
 }
+
+gboolean
+meta_display_dispatch_gnoblin_event (MetaDisplay *display,
+                                     const char  *event,
+                                     GVariant    *payload)
+{
+#ifdef HAVE_WAYLAND
+  g_autoptr (GError) error = NULL;
+  gboolean claimed = FALSE;
+
+  if (!gnoblin_native_control_is_session (display))
+    return FALSE;
+  if (!gnoblin_native_control_dispatch_runtime_event (display, event, payload,
+                                                      &claimed, &error))
+    g_warning ("gnoblin runtime event %s: %s", event,
+               error ? error->message : "could not queue event");
+  return claimed;
+#else
+  return FALSE;
+#endif
+}

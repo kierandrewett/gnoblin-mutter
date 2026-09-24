@@ -54,6 +54,9 @@
 #include "backends/meta-cursor-xcursor.h"
 #include "clutter/clutter.h"
 #include "cogl/cogl.h"
+#include "meta/display.h"
+#include "meta/meta-context.h"
+#include "meta/window.h"
 #include "compositor/meta-surface-actor-wayland.h"
 #include "meta/meta-cursor-tracker.h"
 #include "wayland/meta-cursor-wayland.h"
@@ -1139,6 +1142,10 @@ meta_wayland_pointer_set_focus_full (MetaWaylandPointer *pointer,
   MetaBackend *backend = backend_from_pointer (pointer);
   MetaCursorTracker *cursor_tracker = meta_backend_get_cursor_tracker (backend);
   ClutterBackend *clutter_backend = meta_backend_get_clutter_backend (backend);
+  MetaWaylandSeat *seat = meta_wayland_input_device_get_seat (input_device);
+  MetaWaylandCompositor *compositor = meta_wayland_seat_get_compositor (seat);
+  MetaDisplay *display = meta_context_get_display (
+    meta_wayland_compositor_get_context (compositor));
   ClutterSeat *clutter_seat = clutter_backend_get_default_seat (clutter_backend);
   MetaWindow *toplevel_window;
   struct wl_client *old_client = NULL;
@@ -1152,6 +1159,26 @@ meta_wayland_pointer_set_focus_full (MetaWaylandPointer *pointer,
 
   if (pointer->focus_surface == surface)
     return;
+
+  {
+    MetaWindow *window = surface ? meta_wayland_surface_get_window (surface) : NULL;
+    const char *app_id = window ? meta_window_get_gtk_application_id (window) : NULL;
+    const char *wm_class = window ? meta_window_get_wm_class (window) : NULL;
+    const char *title = window ? meta_window_get_title (window) : NULL;
+    GVariantBuilder payload;
+    g_autoptr (GVariant) event = NULL;
+
+    g_variant_builder_init (&payload, G_VARIANT_TYPE_VARDICT);
+    g_variant_builder_add (&payload, "{sv}", "app_id",
+                           g_variant_new_string (app_id ? app_id : ""));
+    g_variant_builder_add (&payload, "{sv}", "wm_class",
+                           g_variant_new_string (wm_class ? wm_class : ""));
+    g_variant_builder_add (&payload, "{sv}", "title",
+                           g_variant_new_string (title ? title : ""));
+    event = g_variant_ref_sink (g_variant_builder_end (&payload));
+    meta_display_dispatch_gnoblin_event (display, "pointer_window_changed", event);
+    meta_display_dispatch_gnoblin_event (display, "mutter.wayland.pointer-window-changed", event);
+  }
 
   if (pointer->focus_surface && pointer->focus_surface->resource)
     old_client = wl_resource_get_client (pointer->focus_surface->resource);
