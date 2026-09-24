@@ -75,6 +75,8 @@
 #include "meta/main.h"
 #include "meta/meta-backend.h"
 #include "meta/meta-context.h"
+#include "meta/meta-wayland-compositor.h"
+#include "wayland/meta-wayland-session-lock.h"
 #include "meta/meta-enum-types.h"
 #include "meta/util.h"
 #include "mtk/mtk.h"
@@ -1662,6 +1664,32 @@ meta_backend_get_context (MetaBackend *backend)
   MetaBackendPrivate *priv = meta_backend_get_instance_private (backend);
 
   return priv->context;
+}
+
+guint
+meta_backend_get_gnoblin_session_lock_capability (MetaBackend *backend)
+{
+#ifdef HAVE_WAYLAND
+  MetaWaylandCompositor *compositor =
+    meta_context_get_wayland_compositor (meta_backend_get_context (backend));
+
+  return compositor ? meta_wayland_session_lock_get_capability (compositor) : 0;
+#else
+  return 0;
+#endif
+}
+
+gboolean
+meta_backend_get_gnoblin_session_lock_active (MetaBackend *backend)
+{
+#ifdef HAVE_WAYLAND
+  MetaWaylandCompositor *compositor =
+    meta_context_get_wayland_compositor (meta_backend_get_context (backend));
+
+  return compositor && meta_wayland_session_lock_is_active (compositor);
+#else
+  return FALSE;
+#endif
 }
 
 /**

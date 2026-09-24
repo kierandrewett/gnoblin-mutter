@@ -62,6 +62,13 @@ MetaKeymapDescription * meta_backend_get_keymap_description (MetaBackend *backen
 META_EXPORT
 MetaContext * meta_backend_get_context (MetaBackend *backend);
 
+/* Gnoblin ext-session-lock state; capability is zero until the secure global exists. */
+META_EXPORT
+guint meta_backend_get_gnoblin_session_lock_capability (MetaBackend *backend);
+
+META_EXPORT
+gboolean meta_backend_get_gnoblin_session_lock_active (MetaBackend *backend);
+
 META_EXPORT
 ClutterActor *meta_backend_get_stage (MetaBackend *backend);
 
