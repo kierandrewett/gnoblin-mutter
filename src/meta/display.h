@@ -93,6 +93,18 @@ MetaContext * meta_display_get_context (MetaDisplay *display);
 META_EXPORT
 MetaCompositor *meta_display_get_compositor  (MetaDisplay *display);
 
+/**
+ * meta_display_apply_gnoblin_input_config:
+ * @display: a #MetaDisplay
+ * @input: (nullable): Gnoblin input settings as a nested `a{sv}` dictionary
+ *
+ * Apply an in-memory Gnoblin input settings overlay. Group dictionaries are
+ * named `mouse`, `touchpad`, `keyboard`, `tablets`, and `styluses`.
+ */
+META_EXPORT
+void meta_display_apply_gnoblin_input_config (MetaDisplay *display,
+                                              GVariant    *input);
+
 META_EXPORT
 MetaWindow *meta_display_get_focus_window (MetaDisplay *display);
 
