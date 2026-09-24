@@ -34,8 +34,10 @@
 #include "backends/meta-stream-window.h"
 #include "backends/meta-virtual-monitor.h"
 #include "core/display-private.h"
+#include "meta/meta-wayland-compositor.h"
 
 #include "meta-private-enum-types.h"
+#include "wayland/meta-wayland-session-lock.h"
 
 #define META_SCREEN_CAST_SESSION_DBUS_PATH "/org/gnome/Mutter/ScreenCast/Session"
 
@@ -81,6 +83,54 @@ struct _MetaScreenCastSession
 
   MetaRemoteDesktopSession *remote_desktop_session;
 };
+
+static gboolean
+is_session_lock_active (MetaScreenCastSession *session)
+{
+  MetaBackend *backend =
+    meta_dbus_session_manager_get_backend (session->session_manager);
+  MetaContext *context = meta_backend_get_context (backend);
+  MetaWaylandCompositor *compositor =
+    meta_context_get_wayland_compositor (context);
+
+  return compositor && meta_wayland_session_lock_is_active (compositor);
+}
+
+static gboolean
+is_session_lock_ready_for_lock_scene (MetaScreenCastSession *session)
+{
+  MetaBackend *backend =
+    meta_dbus_session_manager_get_backend (session->session_manager);
+  MetaContext *context = meta_backend_get_context (backend);
+  MetaWaylandCompositor *compositor =
+    meta_context_get_wayland_compositor (context);
+
+  return compositor &&
+    meta_wayland_session_lock_get_state (compositor) ==
+      META_WAYLAND_SESSION_LOCK_LOCKED &&
+    meta_wayland_session_lock_is_presentation_confirmed (compositor);
+}
+
+static gboolean
+check_capture_allowed (MetaScreenCastSession  *session,
+                       GDBusMethodInvocation *invocation,
+                       gboolean                lock_scene_only)
+{
+  if (!is_session_lock_active (session))
+    return TRUE;
+
+  /* A monitor stream paints the compositor stage.  Once the controller's
+   * presentation barrier has fired, that stage is fully covered by the
+   * verified session-lock scene.  Window, area and virtual streams never get
+   * this exception because they can bypass the covered stage. */
+  if (lock_scene_only && is_session_lock_ready_for_lock_scene (session))
+    return TRUE;
+
+  g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR,
+                                         G_DBUS_ERROR_ACCESS_DENIED,
+                                         "Screen capture is unavailable while the session is locked");
+  return FALSE;
+}
 
 static void initable_init_iface (GInitableIface *iface);
 
@@ -142,6 +192,14 @@ meta_screen_cast_session_start (MetaScreenCastSession  *session,
                                 GError                **error)
 {
   GList *l;
+
+  if (is_session_lock_active (session) &&
+      !is_session_lock_ready_for_lock_scene (session))
+    {
+      g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_PERMISSION_DENIED,
+                           "Screen capture is unavailable while the session is locked");
+      return FALSE;
+    }
 
   for (l = session->streams; l; l = l->next)
     {
@@ -327,6 +385,9 @@ handle_start (MetaDBusScreenCastSession *skeleton,
       return TRUE;
     }
 
+  if (!check_capture_allowed (session, invocation, TRUE))
+    return TRUE;
+
   switch (session->session_type)
     {
     case META_SCREEN_CAST_SESSION_TYPE_NORMAL:
@@ -459,6 +520,9 @@ handle_record_monitor (MetaDBusScreenCastSession *skeleton,
       return G_DBUS_METHOD_INVOCATION_HANDLED;
     }
 
+  if (!check_capture_allowed (session, invocation, TRUE))
+    return G_DBUS_METHOD_INVOCATION_HANDLED;
+
   interface_skeleton = G_DBUS_INTERFACE_SKELETON (skeleton);
   connection = g_dbus_interface_skeleton_get_connection (interface_skeleton);
 
@@ -567,6 +631,9 @@ handle_record_window (MetaDBusScreenCastSession *skeleton,
                                              "Permission denied");
       return G_DBUS_METHOD_INVOCATION_HANDLED;
     }
+
+  if (!check_capture_allowed (session, invocation, FALSE))
+    return G_DBUS_METHOD_INVOCATION_HANDLED;
 
   if (properties_variant)
     window_id_variant = g_variant_lookup_value (properties_variant,
@@ -686,6 +753,9 @@ handle_record_area (MetaDBusScreenCastSession *skeleton,
                                              "Permission denied");
       return G_DBUS_METHOD_INVOCATION_HANDLED;
     }
+
+  if (!check_capture_allowed (session, invocation, FALSE))
+    return G_DBUS_METHOD_INVOCATION_HANDLED;
 
   if (!g_variant_lookup (properties_variant, "cursor-mode", "u", &cursor_mode))
     {
@@ -859,6 +929,9 @@ handle_record_virtual (MetaDBusScreenCastSession *skeleton,
                                              "Permission denied");
       return G_DBUS_METHOD_INVOCATION_HANDLED;
     }
+
+  if (!check_capture_allowed (session, invocation, FALSE))
+    return G_DBUS_METHOD_INVOCATION_HANDLED;
 
   if (!g_variant_lookup (properties_variant, "cursor-mode", "u", &cursor_mode))
     {

@@ -42,7 +42,9 @@
 #include <drm_fourcc.h>
 
 #include "backends/meta-stream.h"
+#include "backends/meta-stream-monitor.h"
 #include "core/meta-fraction.h"
+#include "meta/meta-wayland-compositor.h"
 
 #include "backends/native/meta-device-pool.h"
 #include "backends/native/meta-drm-buffer.h"
@@ -51,6 +53,7 @@
 #include "backends/native/meta-renderer-native-private.h"
 #include "common/meta-drm-timeline.h"
 #include "mtk/mtk.h"
+#include "wayland/meta-wayland-session-lock.h"
 
 #define CURSOR_META_SIZE(width, height) \
   (sizeof (struct spa_meta_cursor) + \
@@ -160,6 +163,9 @@ typedef struct _MetaStreamSourcePrivate
 
   gboolean must_drive;
   gboolean pending_process;
+
+  MetaWaylandCompositor *session_lock_compositor;
+  gulong session_lock_state_changed_id;
 } MetaStreamSourcePrivate;
 
 typedef struct _MetaStreamBuffer
@@ -1096,7 +1102,10 @@ do_record_frame (MetaStreamSource      *source,
       damage = mtk_region_create_rectangle (&full_rect);
     }
 
-  if (spa_data->data || spa_data->type == SPA_DATA_MemFd)
+  /* A negotiated memfd must be mapped before it can be handed to a consumer.
+   * Treat a missing mapping as a failure rather than dereferencing NULL or
+   * leaving the previous desktop frame current at the PipeWire peer. */
+  if (spa_data->type == SPA_DATA_MemFd && spa_data->data)
     {
       int width = priv->video_format.size.width;
       int height = priv->video_format.size.height;
@@ -1146,6 +1155,93 @@ do_record_frame (MetaStreamSource      *source,
     clutter_damage_history_step (priv->damage_history);
 
   return result;
+}
+
+static gboolean
+is_session_lock_active (MetaStreamSource *source)
+{
+  MetaStreamSourcePrivate *priv =
+    meta_stream_source_get_instance_private (source);
+  MetaBackend *backend = meta_stream_get_backend (priv->stream);
+  MetaContext *context = meta_backend_get_context (backend);
+  MetaWaylandCompositor *compositor =
+    meta_context_get_wayland_compositor (context);
+
+  return compositor && meta_wayland_session_lock_is_active (compositor);
+}
+
+static gboolean
+is_session_lock_scene_stream (MetaStreamSource *source)
+{
+  MetaStreamSourcePrivate *priv =
+    meta_stream_source_get_instance_private (source);
+  MetaBackend *backend = meta_stream_get_backend (priv->stream);
+  MetaContext *context = meta_backend_get_context (backend);
+  MetaWaylandCompositor *compositor =
+    meta_context_get_wayland_compositor (context);
+
+  /* Monitor streams paint the compositor stage.  The lock controller holds
+   * direct scan-out off and keeps its scene topmost before it emits `locked`,
+   * so this paints only the lock UI. */
+  return compositor && META_IS_STREAM_MONITOR (priv->stream) &&
+    meta_wayland_session_lock_get_state (compositor) ==
+      META_WAYLAND_SESSION_LOCK_LOCKED &&
+    meta_wayland_session_lock_is_presentation_confirmed (compositor);
+}
+
+static void
+on_session_lock_state_changed (MetaWaylandCompositor      *compositor,
+                               MetaWaylandSessionLockState state,
+                               gpointer                     user_data)
+{
+  MetaStreamSource *source = user_data;
+
+  (void) compositor;
+
+  if (state == META_WAYLAND_SESSION_LOCK_UNLOCKED)
+    return;
+
+  /* This closes the idle-stream gap. COVERING and FAILSAFE get a black frame;
+   * only a subsequently presented monitor lock scene is allowed through. */
+  meta_stream_source_record_frame (source,
+                                   META_STREAM_RECORD_FLAG_NONE,
+                                   META_STREAM_PAINT_PHASE_DETACHED);
+}
+
+static gboolean
+record_black_frame (MetaStreamSource *source,
+                    struct spa_buffer *spa_buffer)
+{
+  MetaStreamSourcePrivate *priv =
+    meta_stream_source_get_instance_private (source);
+  struct spa_data *spa_data = &spa_buffer->datas[0];
+
+  if (spa_data->type == SPA_DATA_MemFd && spa_data->data)
+    {
+      memset (spa_data->data, 0, spa_data->maxsize);
+      return TRUE;
+    }
+
+  if (spa_data->type == SPA_DATA_DmaBuf)
+    {
+      CoglDmaBufHandle *dmabuf_handle =
+        g_hash_table_lookup (priv->dmabuf_handles,
+                             GINT_TO_POINTER (spa_data->fd));
+      CoglFramebuffer *framebuffer;
+      CoglColor black;
+
+      if (!dmabuf_handle)
+        return FALSE;
+
+      framebuffer = cogl_dma_buf_handle_get_framebuffer (dmabuf_handle);
+      cogl_color_init_from_4f (&black, 0.f, 0.f, 0.f, 1.f);
+      cogl_framebuffer_clear (framebuffer, COGL_BUFFER_BIT_COLOR, &black);
+      cogl_framebuffer_flush (framebuffer);
+      maybe_set_sync_points (source, spa_buffer);
+      return TRUE;
+    }
+
+  return FALSE;
 }
 
 gboolean
@@ -1462,6 +1558,8 @@ meta_stream_source_record_frame_with_timestamp (MetaStreamSource     *source,
   struct spa_buffer *spa_buffer;
   struct spa_meta_header *header;
   struct spa_data *spa_data;
+  gboolean frame_recorded;
+  gboolean close_after_queue = FALSE;
   g_autoptr (MtkRegion) damage = NULL;
   g_autoptr (GError) error = NULL;
 
@@ -1482,6 +1580,8 @@ meta_stream_source_record_frame_with_timestamp (MetaStreamSource     *source,
       meta_topic (META_DEBUG_SCREEN_CAST,
                   "Couldn't dequeue a buffer from pipewire stream: %s",
                   error->message);
+      if (is_session_lock_active (source) && !is_session_lock_scene_stream (source))
+        meta_stream_source_close (source);
       meta_stream_source_queue_follow_up (source, flags);
       return record_result;
     }
@@ -1500,6 +1600,11 @@ meta_stream_source_record_frame_with_timestamp (MetaStreamSource     *source,
         header->flags = SPA_META_HEADER_FLAG_CORRUPTED;
 
       queue_pw_buffer (source, buffer, FALSE);
+      /* An invalid PipeWire buffer cannot replace the unlocked frame. Close
+       * the stream after returning this buffer so a locked session never
+       * leaves an active capture peer showing frozen desktop content. */
+      if (is_session_lock_active (source) && !is_session_lock_scene_stream (source))
+        meta_stream_source_close (source);
       return record_result;
     }
 
@@ -1510,7 +1615,23 @@ meta_stream_source_record_frame_with_timestamp (MetaStreamSource     *source,
       else
         damage = mtk_region_create ();
 
-      if (do_record_frame (source, flags, paint_phase, buffer, damage, &error))
+      if (is_session_lock_active (source) && !is_session_lock_scene_stream (source))
+        {
+          frame_recorded = record_black_frame (source, spa_buffer);
+          if (!frame_recorded)
+            {
+              /* A stale PipeWire frame is safer than a failed lock only if
+               * the stream is torn down. Do not leave a peer with an active
+               * stream whose last successful frame is the unlocked desktop. */
+              g_warning ("Closing screen-cast stream: cannot produce lock cover frame");
+              close_after_queue = TRUE;
+            }
+        }
+      else
+        frame_recorded = do_record_frame (source, flags, paint_phase, buffer,
+                                          damage, &error);
+
+      if (frame_recorded)
         {
           struct spa_meta_region *spa_meta_video_crop;
 
@@ -1586,6 +1707,9 @@ meta_stream_source_record_frame_with_timestamp (MetaStreamSource     *source,
   queue_pw_buffer (source,
                    buffer,
                    !(spa_data->chunk->flags & SPA_CHUNK_FLAG_CORRUPTED));
+
+  if (close_after_queue)
+    meta_stream_source_close (source);
 
   return record_result;
 }
@@ -3113,6 +3237,14 @@ meta_stream_source_constructed (GObject *object)
     meta_stream_source_get_instance_private (source);
 
   priv->render_device = get_render_device (source);
+  priv->session_lock_compositor =
+    meta_context_get_wayland_compositor (
+      meta_backend_get_context (meta_stream_get_backend (priv->stream)));
+  if (priv->session_lock_compositor)
+    priv->session_lock_state_changed_id =
+      meta_wayland_session_lock_add_state_changed_callback (
+        priv->session_lock_compositor, on_session_lock_state_changed,
+        source, NULL);
 
   G_OBJECT_CLASS (meta_stream_source_parent_class)->constructed (object);
 }
@@ -3128,6 +3260,13 @@ meta_stream_source_dispose (GObject *object)
 
   if (meta_stream_source_is_enabled (source))
     meta_stream_source_disable (source);
+
+  if (priv->session_lock_state_changed_id)
+    {
+      meta_wayland_session_lock_remove_state_changed_callback (
+        priv->session_lock_compositor, priv->session_lock_state_changed_id);
+      priv->session_lock_state_changed_id = 0;
+    }
 
   g_hash_table_iter_init (&modifierIter,
                           priv->modifiers);

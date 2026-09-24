@@ -44,8 +44,10 @@
 #include "core/display-private.h"
 #include "core/meta-sealed-fd.h"
 #include "meta/meta-backend.h"
+#include "meta/meta-wayland-compositor.h"
 
 #include "meta-dbus-remote-desktop.h"
+#include "wayland/meta-wayland-session-lock.h"
 
 #define META_REMOTE_DESKTOP_SESSION_DBUS_PATH "/org/gnome/Mutter/RemoteDesktop/Session"
 
@@ -416,6 +418,37 @@ check_permission (MetaRemoteDesktopSession *session,
 }
 
 static gboolean
+is_session_lock_active (MetaRemoteDesktopSession *session)
+{
+  MetaBackend *backend =
+    meta_dbus_session_manager_get_backend (session->session_manager);
+  MetaContext *context = meta_backend_get_context (backend);
+  MetaWaylandCompositor *compositor =
+    meta_context_get_wayland_compositor (context);
+
+  return compositor && meta_wayland_session_lock_is_active (compositor);
+}
+
+static gboolean
+is_session_lock_ready_for_remote_input (MetaRemoteDesktopSession *session)
+{
+  MetaBackend *backend =
+    meta_dbus_session_manager_get_backend (session->session_manager);
+  MetaContext *context = meta_backend_get_context (backend);
+  MetaWaylandCompositor *compositor =
+    meta_context_get_wayland_compositor (context);
+
+  /* The ScreenCast/RemoteDesktop portal has already authenticated and
+   * authorised this session.  Mutter supplies no new policy here: it merely
+   * makes that existing, authorised input reach the verified lock role after
+   * every output has presented the lock scene. */
+  return compositor &&
+    meta_wayland_session_lock_get_state (compositor) ==
+      META_WAYLAND_SESSION_LOCK_LOCKED &&
+    meta_wayland_session_lock_is_presentation_confirmed (compositor);
+}
+
+static gboolean
 meta_remote_desktop_session_check_can_notify (MetaRemoteDesktopSession *session,
                                               GDBusMethodInvocation    *invocation)
 {
@@ -432,6 +465,15 @@ meta_remote_desktop_session_check_can_notify (MetaRemoteDesktopSession *session,
       g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR,
                                              G_DBUS_ERROR_ACCESS_DENIED,
                                              "Permission denied");
+      return FALSE;
+    }
+
+  if (is_session_lock_active (session) &&
+      !is_session_lock_ready_for_remote_input (session))
+    {
+      g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR,
+                                             G_DBUS_ERROR_ACCESS_DENIED,
+                                             "Remote input is unavailable while the session is locked");
       return FALSE;
     }
 
