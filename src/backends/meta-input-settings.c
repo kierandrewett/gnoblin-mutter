@@ -2417,6 +2417,24 @@ meta_input_settings_get_backend (MetaInputSettings *settings)
   return priv->backend;
 }
 
+double
+meta_input_settings_get_touchpad_scroll_speed (MetaInputSettings *input_settings)
+{
+  MetaInputSettingsPrivate *priv;
+  GVariant *value;
+  double speed = 1.0;
+
+  g_return_val_if_fail (META_IS_INPUT_SETTINGS (input_settings), 1.0);
+
+  priv = meta_input_settings_get_instance_private (input_settings);
+  value = gnoblin_setting (input_settings, priv->touchpad_settings, "scroll-speed");
+  if (value && g_variant_is_of_type (value, G_VARIANT_TYPE_DOUBLE))
+    speed = g_variant_get_double (value);
+  g_clear_pointer (&value, g_variant_unref);
+
+  return CLAMP (speed, 0.0, 2.0);
+}
+
 void
 meta_display_apply_gnoblin_input_config (MetaDisplay *display,
                                          GVariant    *input)

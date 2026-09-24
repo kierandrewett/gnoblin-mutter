@@ -50,6 +50,7 @@
 #include "backends/meta-backend-private.h"
 #include "backends/meta-cursor-renderer.h"
 #include "backends/meta-cursor-tracker-private.h"
+#include "backends/meta-input-settings-private.h"
 #include "backends/meta-cursor-xcursor.h"
 #include "clutter/clutter.h"
 #include "cogl/cogl.h"
@@ -889,13 +890,26 @@ handle_scroll_event (MetaWaylandPointer *pointer,
     case CLUTTER_SCROLL_SMOOTH:
       {
         double dx, dy;
+        double scroll_speed = 1.0;
+        ClutterInputDevice *source_device = clutter_event_get_source_device (event);
         /* Clutter smooth scroll events are in discrete steps (1 step = 1.0 long
          * vector along one axis). To convert to smooth scroll events that are
          * in pointer motion event space, multiply the vector with the 10. */
         const double factor = 10.0;
         clutter_event_get_scroll_delta (event, &dx, &dy);
-        x_value = wl_fixed_from_double (dx * factor);
-        y_value = wl_fixed_from_double (dy * factor);
+        if (source == WL_POINTER_AXIS_SOURCE_FINGER && source_device &&
+            clutter_input_device_get_device_type (source_device) == CLUTTER_TOUCHPAD_DEVICE)
+          {
+            MetaInputSettings *input_settings =
+              meta_backend_get_input_settings (backend_from_pointer (pointer));
+
+            if (input_settings)
+              {
+                scroll_speed = meta_input_settings_get_touchpad_scroll_speed (input_settings);
+              }
+          }
+        x_value = wl_fixed_from_double (dx * factor * scroll_speed);
+        y_value = wl_fixed_from_double (dy * factor * scroll_speed);
 
         if (source == WL_POINTER_AXIS_SOURCE_WHEEL)
           {
