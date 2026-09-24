@@ -50,6 +50,7 @@ enum
   PROP_0,
 
   PROP_HAS_ACCELEROMETER,
+  PROP_ORIENTATION_LOCKED,
 
   PROP_LAST
 };
@@ -68,6 +69,7 @@ struct _MetaOrientationManager
   MetaOrientation orientation;
   gboolean has_accel;
   gboolean orientation_locked;
+  gboolean has_orientation_lock_override;
   gboolean should_claim;
   gboolean is_claimed;
   int inhibited_count;
@@ -330,21 +332,31 @@ sync_accelerometer_claimed (MetaOrientationManager *self)
 }
 
 static void
-orientation_lock_changed (MetaOrientationManager *self)
+set_orientation_locked (MetaOrientationManager *self,
+                        gboolean                orientation_locked)
 {
-  gboolean orientation_locked;
-
-  orientation_locked = g_settings_get_boolean (self->settings, ORIENTATION_LOCK_KEY);
-
   if (self->orientation_locked == orientation_locked)
     return;
 
   self->orientation_locked = orientation_locked;
 
+  g_object_notify_by_pspec (G_OBJECT (self), props[PROP_ORIENTATION_LOCKED]);
+
   if (self->orientation_locked)
     meta_orientation_manager_inhibit_tracking (self);
   else
     meta_orientation_manager_uninhibit_tracking (self);
+}
+
+static void
+orientation_lock_changed (MetaOrientationManager *self)
+{
+  if (self->has_orientation_lock_override)
+    return;
+
+  set_orientation_locked (self,
+                          g_settings_get_boolean (self->settings,
+                                                  ORIENTATION_LOCK_KEY));
 }
 
 static void
@@ -450,6 +462,9 @@ meta_orientation_manager_get_property (GObject    *object,
     case PROP_HAS_ACCELEROMETER:
       g_value_set_boolean (value, self->has_accel);
       break;
+    case PROP_ORIENTATION_LOCKED:
+      g_value_set_boolean (value, self->orientation_locked);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -503,6 +518,12 @@ meta_orientation_manager_class_init (MetaOrientationManagerClass *klass)
                           G_PARAM_READABLE |
                           G_PARAM_EXPLICIT_NOTIFY |
                           G_PARAM_STATIC_STRINGS);
+  props[PROP_ORIENTATION_LOCKED] =
+    g_param_spec_boolean ("orientation-locked", NULL, NULL,
+                          FALSE,
+                          G_PARAM_READABLE |
+                          G_PARAM_EXPLICIT_NOTIFY |
+                          G_PARAM_STATIC_STRINGS);
   g_object_class_install_properties (gobject_class, PROP_LAST, props);
 }
 
@@ -516,6 +537,60 @@ gboolean
 meta_orientation_manager_has_accelerometer (MetaOrientationManager *self)
 {
   return self->has_accel;
+}
+
+/**
+ * meta_orientation_manager_set_orientation_locked:
+ * @self: a #MetaOrientationManager
+ * @orientation_locked: whether automatic orientation tracking should be locked
+ *
+ * Set the live orientation lock without changing the settings-daemon
+ * GSettings value. Calling this method makes the supplied value authoritative
+ * for this manager until meta_orientation_manager_clear_orientation_lock_override()
+ * is called.
+ */
+void
+meta_orientation_manager_set_orientation_locked (MetaOrientationManager *self,
+                                                 gboolean                orientation_locked)
+{
+  g_return_if_fail (META_IS_ORIENTATION_MANAGER (self));
+
+  self->has_orientation_lock_override = TRUE;
+  set_orientation_locked (self, !!orientation_locked);
+}
+
+/**
+ * meta_orientation_manager_get_orientation_locked:
+ * @self: a #MetaOrientationManager
+ *
+ * Returns: whether automatic orientation tracking is currently locked
+ */
+gboolean
+meta_orientation_manager_get_orientation_locked (MetaOrientationManager *self)
+{
+  g_return_val_if_fail (META_IS_ORIENTATION_MANAGER (self), FALSE);
+
+  return self->orientation_locked;
+}
+
+/**
+ * meta_orientation_manager_clear_orientation_lock_override:
+ * @self: a #MetaOrientationManager
+ *
+ * Stop overriding the settings-daemon value and apply its current value. This
+ * restores the stock GNOME ownership of the orientation lock.
+ */
+void
+meta_orientation_manager_clear_orientation_lock_override (MetaOrientationManager *self)
+{
+  g_return_if_fail (META_IS_ORIENTATION_MANAGER (self));
+
+  self->has_orientation_lock_override = FALSE;
+
+  if (self->settings)
+    orientation_lock_changed (self);
+  else
+    set_orientation_locked (self, FALSE);
 }
 
 void

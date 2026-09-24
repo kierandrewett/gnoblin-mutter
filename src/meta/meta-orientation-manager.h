@@ -50,6 +50,16 @@ META_EXPORT
 gboolean meta_orientation_manager_has_accelerometer (MetaOrientationManager *self);
 
 META_EXPORT
+void meta_orientation_manager_set_orientation_locked (MetaOrientationManager *self,
+                                                       gboolean                orientation_locked);
+
+META_EXPORT
+gboolean meta_orientation_manager_get_orientation_locked (MetaOrientationManager *self);
+
+META_EXPORT
+void meta_orientation_manager_clear_orientation_lock_override (MetaOrientationManager *self);
+
+META_EXPORT
 MtkMonitorTransform meta_orientation_to_transform (MetaOrientation orientation);
 
 void meta_orientation_manager_inhibit_tracking (MetaOrientationManager *self);
