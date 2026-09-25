@@ -44,6 +44,9 @@
 /* Define if you want to enable XWayland support */
 #mesondefine HAVE_XWAYLAND
 
+/* Building the Wayland compositor and its Gnoblin runtime API */
+#mesondefine HAVE_WAYLAND
+
 /* Defined if screen cast and remote desktop support is enabled */
 #mesondefine HAVE_REMOTE_DESKTOP
 
