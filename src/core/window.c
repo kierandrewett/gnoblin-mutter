@@ -5565,14 +5565,15 @@ meta_window_raise (MetaWindow  *window)
    * constraints in stack.c then magically take care of raising all
    * the child windows appropriately.
    */
-  meta_stack_raise (window->display->stack, ancestor);
+  if (meta_window_is_in_stack (ancestor))
+    meta_stack_raise (window->display->stack, ancestor);
 
   /* Okay, so stacking constraints misses one case: If a window has
    * two children and we want to raise one of those children, then
    * raising the ancestor isn't enough; we need to also raise the
    * correct child.  See bug 307875.
    */
-  if (window != ancestor)
+  if (window != ancestor && meta_window_is_in_stack (window))
     meta_stack_raise (window->display->stack, window);
 
   g_signal_emit (window, window_signals[RAISED], 0);
