@@ -75,6 +75,7 @@
 #include "meta/main.h"
 #include "meta/meta-backend.h"
 #include "meta/meta-context.h"
+#include "meta/display.h"
 #include "meta/meta-wayland-compositor.h"
 #include "wayland/meta-wayland-session-lock.h"
 #include "meta/meta-enum-types.h"
@@ -1104,6 +1105,78 @@ update_pointer_visibility_from_event (MetaBackend  *backend,
 }
 
 static gboolean
+dispatch_gnoblin_touchpad_gesture (MetaBackend  *backend,
+                                   ClutterEvent *event)
+{
+  ClutterEventType event_type = clutter_event_type (event);
+  ClutterTouchpadGesturePhase phase;
+  const char *gesture;
+  const char *phase_name;
+  ClutterInputDevice *device;
+  MetaDisplay *display;
+  GVariantBuilder payload_builder;
+  g_autoptr (GVariant) payload = NULL;
+  double dx = 0, dy = 0;
+
+  if (event_type == CLUTTER_TOUCHPAD_SWIPE)
+    gesture = "swipe";
+  else if (event_type == CLUTTER_TOUCHPAD_PINCH)
+    gesture = "pinch";
+  else if (event_type == CLUTTER_TOUCHPAD_HOLD)
+    gesture = "hold";
+  else
+    return FALSE;
+
+  phase = clutter_event_get_gesture_phase (event);
+  switch (phase)
+    {
+    case CLUTTER_TOUCHPAD_GESTURE_PHASE_BEGIN: phase_name = "begin"; break;
+    case CLUTTER_TOUCHPAD_GESTURE_PHASE_UPDATE: phase_name = "update"; break;
+    case CLUTTER_TOUCHPAD_GESTURE_PHASE_END: phase_name = "end"; break;
+    case CLUTTER_TOUCHPAD_GESTURE_PHASE_CANCEL: phase_name = "cancel"; break;
+    default: return FALSE;
+    }
+
+  g_variant_builder_init (&payload_builder, G_VARIANT_TYPE_VARDICT);
+  g_variant_builder_add (&payload_builder, "{sv}", "gesture",
+                         g_variant_new_string (gesture));
+  g_variant_builder_add (&payload_builder, "{sv}", "phase",
+                         g_variant_new_string (phase_name));
+  g_variant_builder_add (&payload_builder, "{sv}", "fingers",
+                         g_variant_new_int64 (
+                           clutter_event_get_touchpad_gesture_finger_count (event)));
+  g_variant_builder_add (&payload_builder, "{sv}", "time",
+                         g_variant_new_int64 (clutter_event_get_time (event)));
+  if (event_type == CLUTTER_TOUCHPAD_SWIPE)
+    {
+      clutter_event_get_gesture_motion_delta_unaccelerated (event, &dx, &dy);
+      g_variant_builder_add (&payload_builder, "{sv}", "dx",
+                             g_variant_new_double (dx));
+      g_variant_builder_add (&payload_builder, "{sv}", "dy",
+                             g_variant_new_double (dy));
+    }
+  else if (event_type == CLUTTER_TOUCHPAD_PINCH)
+    {
+      g_variant_builder_add (&payload_builder, "{sv}", "scale",
+                             g_variant_new_double (
+                               clutter_event_get_gesture_pinch_scale (event)));
+      g_variant_builder_add (&payload_builder, "{sv}", "angle_delta",
+                             g_variant_new_double (
+                               clutter_event_get_gesture_pinch_angle_delta (event)));
+    }
+
+  device = clutter_event_get_source_device (event);
+  g_variant_builder_add (&payload_builder, "{sv}", "device",
+                         g_variant_new_string (device ?
+                           clutter_input_device_get_device_name (device) : ""));
+  payload = g_variant_ref_sink (g_variant_builder_end (&payload_builder));
+  display = meta_context_get_display (meta_backend_get_context (backend));
+  return meta_display_dispatch_gnoblin_event (display,
+                                              "mutter.touchpad.gesture",
+                                              payload);
+}
+
+static gboolean
 dispatch_clutter_event (MetaBackend *backend)
 {
   MetaBackendPrivate *priv = meta_backend_get_instance_private (backend);
@@ -1116,7 +1189,8 @@ dispatch_clutter_event (MetaBackend *backend)
       g_warn_if_fail (!priv->in_init ||
                       clutter_event_type (event) == CLUTTER_DEVICE_ADDED);
 
-      clutter_stage_handle_event (stage, event);
+      if (!dispatch_gnoblin_touchpad_gesture (backend, event))
+        clutter_stage_handle_event (stage, event);
       meta_backend_update_from_event (backend, event);
       clutter_event_free (event);
       return TRUE;
