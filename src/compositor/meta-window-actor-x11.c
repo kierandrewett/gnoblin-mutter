@@ -26,6 +26,7 @@
 #include "clutter/clutter-frame-clock.h"
 #include "compositor/compositor-private.h"
 #include "compositor/meta-cullable.h"
+#include "compositor/meta-gnoblin-window-effects.h"
 #include "compositor/meta-shaped-texture-private.h"
 #include "compositor/meta-surface-actor.h"
 #include "core/window-private.h"
@@ -1064,6 +1065,24 @@ meta_window_actor_x11_update_shape (MetaWindowActorX11 *actor_x11)
     return;
 
   clutter_actor_queue_redraw (CLUTTER_ACTOR (surface));
+}
+
+void
+meta_window_actor_x11_set_rounded_clip (MetaWindowActorX11 *actor_x11,
+                                        double              radius,
+                                        double              exponent,
+                                        gboolean            automatic)
+{
+  MetaSurfaceActor *surface;
+
+  g_return_if_fail (META_IS_WINDOW_ACTOR_X11 (actor_x11));
+
+  surface = meta_window_actor_get_surface (META_WINDOW_ACTOR (actor_x11));
+  if (!surface)
+    return;
+
+  meta_gnoblin_window_effects_set_rounded_clip (
+    CLUTTER_ACTOR (surface), radius, exponent, automatic);
 }
 
 static void
