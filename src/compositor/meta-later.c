@@ -229,7 +229,10 @@ meta_laters_finalize (GObject *object)
   for (i = 0; i < G_N_ELEMENTS (laters->laters); i++)
     g_slist_free_full (laters->laters[i], (GDestroyNotify) meta_later_unref);
 
-  g_clear_signal_handler (&laters->before_update_handler_id, stage);
+  if (stage)
+    g_clear_signal_handler (&laters->before_update_handler_id, stage);
+  else
+    laters->before_update_handler_id = 0;
 
   G_OBJECT_CLASS (meta_laters_parent_class)->finalize (object);
 }

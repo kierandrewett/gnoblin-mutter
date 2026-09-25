@@ -1971,8 +1971,11 @@ meta_wayland_color_manager_dispose (GObject *object)
   MetaWaylandColorManager *color_manager = META_WAYLAND_COLOR_MANAGER (object);
   MetaColorManager *meta_color_manager = get_meta_color_manager (color_manager);
 
-  g_clear_signal_handler (&color_manager->color_state_changed_handler_id,
-                          meta_color_manager);
+  if (meta_color_manager)
+    g_clear_signal_handler (&color_manager->color_state_changed_handler_id,
+                            meta_color_manager);
+  else
+    color_manager->color_state_changed_handler_id = 0;
 
   g_clear_pointer (&color_manager->outputs, g_hash_table_destroy);
   g_clear_pointer (&color_manager->surfaces, g_hash_table_destroy);
