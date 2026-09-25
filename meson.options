@@ -184,6 +184,12 @@ option('bash_completion',
   description: 'Integrate bash completion for gdctl'
 )
 
+option('install_tools',
+  type: 'boolean',
+  value: true,
+  description: 'Install the optional gdctl and service client tools'
+)
+
 option('devkit',
   type: 'feature',
   value: 'auto',

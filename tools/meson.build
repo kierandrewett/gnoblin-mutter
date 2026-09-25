@@ -1,12 +1,14 @@
-install_data(
-  'gdctl',
-  install_dir: bindir,
-)
+if get_option('install_tools')
+  install_data(
+    'gdctl',
+    install_dir: bindir,
+  )
 
-install_data(
-  'gnome-service-client',
-  install_dir: bindir,
-)
+  install_data(
+    'gnome-service-client',
+    install_dir: bindir,
+  )
+endif
 
 if have_bash_completion
   bash_completion = dependency('bash-completion', required: false)
