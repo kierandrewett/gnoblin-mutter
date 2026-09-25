@@ -62,6 +62,7 @@
 #include "wayland/meta-wayland-private.h"
 #include "wayland/meta-wayland-region.h"
 #include "wayland/meta-wayland-seat.h"
+#include "wayland/meta-wayland-session-lock.h"
 #include "wayland/meta-wayland-subsurface.h"
 #include "wayland/meta-wayland-system-bell.h"
 #include "wayland/meta-wayland-tablet-manager.h"
@@ -886,6 +887,8 @@ meta_wayland_compositor_finalize (GObject *object)
     meta_wayland_compositor_get_instance_private (compositor);
   MetaBackend *backend = meta_context_get_backend (compositor->context);
   ClutterActor *stage = meta_backend_get_stage (backend);
+
+  meta_wayland_session_lock_controller_finalize (compositor);
 
   meta_wayland_xdg_foreign_finalize (compositor);
   meta_wayland_xdg_session_management_finalize (compositor);
