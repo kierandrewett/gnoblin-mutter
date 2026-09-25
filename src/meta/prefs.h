@@ -489,3 +489,8 @@ GDesktopVisualBellType meta_prefs_get_visual_bell_type (void);
 
 META_EXPORT
 unsigned int meta_prefs_get_check_alive_timeout (void);
+/* Update live cursor preferences for Gnoblin sessions. */
+META_EXPORT
+void        meta_prefs_set_gnoblin_cursor_config (const char *theme,
+                                                  int         size);
+

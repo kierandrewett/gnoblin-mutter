@@ -2612,3 +2612,39 @@ meta_prefs_set_force_fullscreen (gboolean whether)
 {
   force_fullscreen = whether;
 }
+static void
+set_gnoblin_cursor_config (const char *theme,
+                           int         size)
+{
+  if (g_strcmp0 (cursor_theme, theme) != 0)
+    {
+      g_free (cursor_theme);
+      cursor_theme = g_strdup (theme);
+      queue_changed (META_PREF_CURSOR_THEME);
+    }
+
+  if (cursor_size != size)
+    {
+      cursor_size = size;
+      queue_changed (META_PREF_CURSOR_SIZE);
+    }
+}
+
+/**
+ * meta_prefs_set_gnoblin_cursor_config:
+ * @theme: installed cursor theme name
+ * @size: cursor size in logical pixels
+ *
+ * Apply Gnoblin's cursor settings in a live Gnoblin session.
+ */
+void
+meta_prefs_set_gnoblin_cursor_config (const char *theme,
+                                      int         size)
+{
+  g_return_if_fail (is_gnoblin_session ());
+  g_return_if_fail (theme != NULL && theme[0] != '\0');
+  g_return_if_fail (size >= 1 && size <= 256);
+
+  set_gnoblin_cursor_config (theme, size);
+}
+
