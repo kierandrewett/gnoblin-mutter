@@ -980,7 +980,7 @@ queue_changed (MetaPreference pref)
 static gboolean
 is_gnoblin_session (void)
 {
-  return g_strcmp0 (g_getenv ("GNOME_SHELL_SESSION_MODE"), "gnoblin") == 0;
+  return meta_is_gnoblin_session ();
 }
 
 static gboolean
