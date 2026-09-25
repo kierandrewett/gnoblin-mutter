@@ -147,6 +147,18 @@ gboolean meta_window_located_on_workspace (MetaWindow    *window,
 META_EXPORT
 gboolean meta_window_is_hidden (MetaWindow *window);
 
+/**
+ * meta_window_is_ready:
+ * @window: a #MetaWindow
+ *
+ * Returns whether the window has completed its initial configuration and can
+ * safely be manipulated by the window manager.
+ *
+ * Returns: %TRUE if the window is ready, or %FALSE otherwise
+ */
+META_EXPORT
+gboolean meta_window_is_ready (MetaWindow *window);
+
 META_EXPORT
 void     meta_window_activate  (MetaWindow *window,guint32 current_time);
 

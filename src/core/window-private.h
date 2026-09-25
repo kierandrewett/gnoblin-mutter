@@ -954,5 +954,3 @@ void meta_window_set_target_monitor_from_number (MetaWindow *window,
                                                  int         number);
 
 void meta_window_notify_ready (MetaWindow *window);
-
-gboolean meta_window_is_ready (MetaWindow *window);
