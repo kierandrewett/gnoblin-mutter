@@ -50,7 +50,7 @@ wayland_server_req = '>= 1.25'
 wayland_protocols_req = '>= 1.48'
 
 # native backend version requirements
-libinput_req = '>= 1.31.0'
+libinput_req = '>= 1.30.0'
 gbm_req = '>= 21.3'
 libdrm_req = '>= 2.4.118'
 
@@ -249,6 +249,9 @@ endif
 
 libgbm_dep = dependency('gbm', version: gbm_req)
 libinput_dep = dependency('libinput', version: libinput_req)
+have_libinput_dwt_timeout = cc.has_function('libinput_device_config_dwt_set_timeout',
+  dependencies: libinput_dep,
+  prefix: '#include <libinput.h>')
 
 
 if not have_egl
@@ -563,6 +566,7 @@ cdata.set('HAVE_REMOTE_DESKTOP', have_remote_desktop)
 cdata.set('HAVE_DEVKIT', have_devkit)
 cdata.set('HAVE_GNOME_DESKTOP', have_gnome_desktop)
 cdata.set('HAVE_SOUND_PLAYER', have_sound_player)
+cdata.set('HAVE_LIBINPUT_DWT_TIMEOUT', have_libinput_dwt_timeout)
 cdata.set('HAVE_LIBWACOM', have_libwacom)
 cdata.set('HAVE_LIBWACOM_GET_NUM_RINGS', have_libwacom_get_num_rings)
 cdata.set('HAVE_STARTUP_NOTIFICATION', have_startup_notification)

@@ -287,8 +287,12 @@ meta_input_settings_native_set_disable_while_typing_timeout (MetaInputSettings  
   if (!libinput_device)
     return;
 
+#ifdef HAVE_LIBINPUT_DWT_TIMEOUT
   if (libinput_device_config_dwt_is_available (libinput_device))
     libinput_device_config_dwt_set_timeout (libinput_device, millis);
+#else
+  (void) millis;
+#endif
 }
 
 static void
