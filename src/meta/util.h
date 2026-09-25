@@ -126,4 +126,6 @@ gboolean meta_gnoblin_frame_renderers_configure (GVariant *services, gboolean re
 
 META_EXPORT
 GVariant *meta_gnoblin_dispatch_native_api (MetaDisplay *display,
-                                            const char  *method);
+                                            const char  *method,
+                                            GVariant    *arguments,
+                                            GError     **error);
