@@ -35,3 +35,8 @@ G_DECLARE_FINAL_TYPE (MetaSurfaceContainerActorWayland,
                       ClutterActor)
 
 void meta_window_actor_wayland_rebuild_surface_tree (MetaWindowActor *actor);
+
+void meta_window_actor_wayland_set_rounded_clip (MetaWindowActor *actor,
+                                                 double           radius,
+                                                 double           exponent,
+                                                 gboolean         automatic);

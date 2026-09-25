@@ -24,6 +24,7 @@
 #include "compositor/meta-cullable.h"
 #include "compositor/meta-surface-actor-wayland.h"
 #include "compositor/meta-window-actor-wayland.h"
+#include "compositor/meta-gnoblin-window-effects.h"
 #include "meta/meta-window-actor.h"
 #include "wayland/meta-wayland-actor-surface.h"
 #include "wayland/meta-wayland-buffer.h"
@@ -658,6 +659,21 @@ meta_window_actor_wayland_sync_geometry (MetaWindowActor *actor)
   MetaWindowActorWayland *self = META_WINDOW_ACTOR_WAYLAND (actor);
 
   self->needs_sync = !do_sync_geometry (self);
+}
+
+void
+meta_window_actor_wayland_set_rounded_clip (MetaWindowActor *actor,
+                                            double           radius,
+                                            double           exponent,
+                                            gboolean         automatic)
+{
+  MetaWindowActorWayland *self;
+
+  g_return_if_fail (META_IS_WINDOW_ACTOR_WAYLAND (actor));
+
+  self = META_WINDOW_ACTOR_WAYLAND (actor);
+  meta_gnoblin_window_effects_set_rounded_clip (
+    CLUTTER_ACTOR (self->surface_container), radius, exponent, automatic);
 }
 
 static void

@@ -484,6 +484,8 @@ if have_remote_desktop
 endif
 
 mutter_sources += [
+  'compositor/meta-gnoblin-window-effects.c',
+  'compositor/meta-gnoblin-window-effects.h',
   'compositor/meta-surface-actor-wayland.c',
   'compositor/meta-surface-actor-wayland.h',
   'compositor/meta-window-actor-wayland.c',
