@@ -930,6 +930,10 @@ meta_window_actor_after_effects (MetaWindowActor *self)
       g_signal_emit (self, signals[EFFECTS_COMPLETED], 0);
       meta_window_actor_sync_visibility (self);
       meta_window_actor_sync_actor_geometry (self, FALSE);
+
+      /* Paint the surface again with the actor's settled transform. */
+      if (priv->surface)
+        clutter_actor_queue_redraw (CLUTTER_ACTOR (priv->surface));
     }
 }
 
