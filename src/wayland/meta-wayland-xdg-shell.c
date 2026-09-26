@@ -218,9 +218,13 @@ xdg_toplevel_destructor (struct wl_resource *resource)
   MetaWaylandXdgToplevel *xdg_toplevel = wl_resource_get_user_data (resource);
   MetaWaylandShellSurface *shell_surface =
     META_WAYLAND_SHELL_SURFACE (xdg_toplevel);
+  MetaWaylandSurface *surface =
+    meta_wayland_surface_role_get_surface (META_WAYLAND_SURFACE_ROLE (xdg_toplevel));
 
   meta_wayland_shell_surface_destroy_window (shell_surface);
   xdg_toplevel->resource = NULL;
+
+  g_object_unref (surface);
 }
 
 static void
@@ -609,6 +613,8 @@ xdg_popup_destructor (struct wl_resource *resource)
   xdg_popup->resource = NULL;
 
   meta_wayland_compositor_sync_focus (wayland_compositor);
+
+  g_object_unref (surface);
 }
 
 static void
@@ -1858,12 +1864,16 @@ xdg_surface_destructor (struct wl_resource *resource)
   MetaWaylandXdgSurface *xdg_surface = wl_resource_get_user_data (resource);
   MetaWaylandXdgSurfacePrivate *priv =
     meta_wayland_xdg_surface_get_instance_private (xdg_surface);
+  MetaWaylandSurface *surface =
+    meta_wayland_surface_role_get_surface (META_WAYLAND_SURFACE_ROLE (xdg_surface));
 
   priv->shell_client->surfaces = g_list_remove (priv->shell_client->surfaces,
                                                 xdg_surface);
 
   priv->resource = NULL;
   priv->first_buffer_attached = FALSE;
+
+  g_object_unref (surface);
 }
 
 static void
@@ -2256,6 +2266,8 @@ meta_wayland_xdg_surface_constructor_finalize (MetaWaylandXdgSurfaceConstructor 
                                   &meta_wayland_xdg_surface_interface,
                                   xdg_surface,
                                   xdg_surface_destructor);
+  g_object_ref (meta_wayland_surface_role_get_surface (
+    META_WAYLAND_SURFACE_ROLE (xdg_surface)));
 
   g_free (constructor);
 }
@@ -2304,6 +2316,7 @@ xdg_surface_constructor_get_toplevel (struct wl_client   *client,
                                   &meta_wayland_xdg_toplevel_interface,
                                   xdg_toplevel,
                                   xdg_toplevel_destructor);
+  g_object_ref (surface);
 
   xdg_surface = META_WAYLAND_XDG_SURFACE (xdg_toplevel);
   meta_wayland_xdg_surface_constructor_finalize (constructor, xdg_surface);
@@ -2378,6 +2391,7 @@ xdg_surface_constructor_get_popup (struct wl_client   *client,
                                   &meta_wayland_xdg_popup_interface,
                                   xdg_popup,
                                   xdg_popup_destructor);
+  g_object_ref (surface);
 
   xdg_surface = META_WAYLAND_XDG_SURFACE (xdg_popup);
   meta_wayland_xdg_surface_constructor_finalize (constructor, xdg_surface);
