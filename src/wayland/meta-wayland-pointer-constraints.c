@@ -38,6 +38,7 @@
 #include "wayland/meta-wayland-seat.h"
 #include "wayland/meta-wayland-subsurface.h"
 #include "wayland/meta-wayland-surface-private.h"
+#include "wayland/meta-wayland-xdg-shell.h"
 
 #ifdef HAVE_XWAYLAND
 #include "wayland/meta-xwayland.h"
@@ -470,11 +471,14 @@ should_constraint_be_enabled (MetaWaylandPointerConstraint *constraint)
        * Locks from Xwayland may come before we have had the opportunity to
        * associate the X11 Window with the wl_surface.
        * For subsurfaces the window of the ancestor might be gone already.
+       * An xdg surface can also temporarily lose its window while the
+       * toplevel is being unmapped and pointer focus is being repicked.
        */
       g_warn_if_fail (
 #ifdef HAVE_XWAYLAND
         meta_wayland_surface_is_xwayland (constraint->surface) ||
 #endif
+        META_IS_WAYLAND_XDG_SURFACE (constraint->surface->role) ||
         META_IS_WAYLAND_SUBSURFACE (constraint->surface->role));
       return FALSE;
     }
