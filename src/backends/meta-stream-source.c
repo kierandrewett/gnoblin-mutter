@@ -24,14 +24,22 @@
 #include <fcntl.h>
 #include <glib/gstdio.h>
 #include <pipewire/pipewire.h>
+#ifdef HAVE_PIPEWIRE_CAPABILITIES
 #include <pipewire/capabilities.h>
+#endif
 #include <spa/debug/pod.h>
+#ifdef HAVE_PIPEWIRE_CAPABILITIES
 #include <spa/param/dict.h>
+#endif
+#ifdef HAVE_PIPEWIRE_CAPABILITIES
 #include <spa/param/dict-utils.h>
+#endif
 #include <spa/param/props.h>
 #include <spa/param/format-utils.h>
 #include <spa/param/tag-utils.h>
+#ifdef HAVE_PIPEWIRE_CAPABILITIES
 #include <spa/param/peer-utils.h>
+#endif
 #include <spa/param/video/format-utils.h>
 #include <spa/pod/dynamic.h>
 #include <spa/utils/result.h>
@@ -341,10 +349,12 @@ push_format_object (MetaStreamSource                 *source,
       modifiers &&
       meta_is_device_id_valid (device_id))
     {
+#ifdef HAVE_PIPEWIRE_DEVICE_ID
       spa_pod_builder_prop (pod_builder,
                             SPA_FORMAT_VIDEO_deviceId,
                             SPA_POD_PROP_FLAG_MANDATORY);
       spa_pod_builder_bytes (pod_builder, &device_id, sizeof device_id);
+#endif
     }
 
   spa_pod_builder_add (pod_builder,
@@ -1825,6 +1835,7 @@ spa_color_state_from_clutter (ClutterColorState                *color_state,
                               enum spa_video_color_primaries   *spa_color_primaries,
                               enum spa_video_transfer_function *spa_transfer_function)
 {
+#ifdef HAVE_PIPEWIRE_CAPABILITIES
   ClutterColorStateParams *color_state_params;
   const ClutterColorimetry *colorimetry;
   const ClutterEOTF *eotf;
@@ -1846,6 +1857,11 @@ spa_color_state_from_clutter (ClutterColorState                *color_state,
       *spa_transfer_function = SPA_VIDEO_TRANSFER_SMPTE2084;
       return TRUE;
     }
+#else
+  (void) color_state;
+  (void) spa_color_primaries;
+  (void) spa_transfer_function;
+#endif
 
   return FALSE;
 }
@@ -2015,6 +2031,7 @@ build_format_params (MetaStreamSource       *source,
     }
 }
 
+#ifdef HAVE_PIPEWIRE_CAPABILITIES
 static void
 append_capabilities_dict_entry (MetaStreamSource *source,
                                 GArray           *capabilities)
@@ -2034,6 +2051,7 @@ append_capabilities_dict_entry (MetaStreamSource *source,
                                       device_id_encoded);
   g_array_append_val (capabilities, dict_entry);
 }
+#endif
 
 static void
 build_tag_params (MetaStreamSource       *source,
@@ -2077,6 +2095,7 @@ build_tag_params (MetaStreamSource       *source,
   spa_tag_build_end (pod_builder, &tag_frame);
 }
 
+#ifdef HAVE_PIPEWIRE_CAPABILITIES
 static void
 build_capability_params (MetaStreamSource       *source,
                          struct spa_pod_builder *pod_builder,
@@ -2104,6 +2123,7 @@ build_capability_params (MetaStreamSource       *source,
   spa_param_dict_build_dict (pod_builder, SPA_PARAM_Capability,
                              &SPA_DICT_INIT (items, capabilities->len));
 }
+#endif
 
 static void
 build_stream_params (MetaStreamSource       *source,
@@ -2112,7 +2132,9 @@ build_stream_params (MetaStreamSource       *source,
 {
   build_format_params (source, pod_builder, pod_offsets);
   build_tag_params (source, pod_builder, pod_offsets);
+#ifdef HAVE_PIPEWIRE_CAPABILITIES
   build_capability_params (source, pod_builder, pod_offsets);
+#endif
 }
 
 static GPtrArray *
@@ -2297,13 +2319,14 @@ update_color_state (MetaStreamSource *source)
 
   switch (priv->video_format.color_primaries)
     {
+#ifdef HAVE_PIPEWIRE_CAPABILITIES
     case SPA_VIDEO_COLOR_PRIMARIES_BT2020:
       colorspace = CLUTTER_COLORSPACE_BT2020;
       break;
+#endif
     default:
-      g_warning ("Unhandled color primaries %s",
-                 spa_debug_type_find_name (spa_type_video_color_primaries,
-                                           priv->video_format.color_primaries));
+      g_warning ("Unhandled color primaries %d",
+                 (int) priv->video_format.color_primaries);
       G_GNUC_FALLTHROUGH;
     case SPA_VIDEO_COLOR_PRIMARIES_BT709:
       colorspace = CLUTTER_COLORSPACE_SRGB;
@@ -2312,13 +2335,14 @@ update_color_state (MetaStreamSource *source)
 
   switch (priv->video_format.transfer_function)
     {
+#ifdef HAVE_PIPEWIRE_CAPABILITIES
     case SPA_VIDEO_TRANSFER_SMPTE2084:
       transfer_function = CLUTTER_TRANSFER_FUNCTION_PQ;
       break;
+#endif
     default:
-      g_warning ("Unhandled transfer function %s",
-                 spa_debug_type_find_name (spa_type_video_transfer_function,
-                                           priv->video_format.transfer_function));
+      g_warning ("Unhandled transfer function %d",
+                 (int) priv->video_format.transfer_function);
       G_GNUC_FALLTHROUGH;
     case SPA_VIDEO_TRANSFER_GAMMA22:
       transfer_function = CLUTTER_TRANSFER_FUNCTION_GAMMA22;
@@ -2371,16 +2395,14 @@ on_format_param_changed (MetaStreamSource *source,
               "Updated PipeWire stream format, "
               "format: %s, "
               "size: %dx%d, "
-              "color primaries: %s, "
-              "transfer function: %s",
+              "color primaries: %d, "
+              "transfer function: %d",
               spa_debug_type_find_name (spa_type_video_format,
                                         priv->video_format.format),
               priv->video_format.size.width,
               priv->video_format.size.height,
-              spa_debug_type_find_name (spa_type_video_color_primaries,
-                                        priv->video_format.color_primaries),
-              spa_debug_type_find_name (spa_type_video_transfer_function,
-                                        priv->video_format.transfer_function));
+              (int) priv->video_format.color_primaries,
+              (int) priv->video_format.transfer_function);
 
   update_color_state (source);
 
@@ -2594,6 +2616,7 @@ on_tag_param_changed (MetaStreamSource *source,
     }
 }
 
+#ifdef HAVE_PIPEWIRE_CAPABILITIES
 static void
 negotiate_with_device_cb (gpointer user_data)
 {
@@ -2681,6 +2704,7 @@ on_peer_capability_param_changed (MetaStreamSource     *source,
                                  "[mutter] negotiate_with_device_cb");
     }
 }
+#endif
 
 static void
 on_stream_param_changed (void                 *data,
@@ -2700,9 +2724,11 @@ on_stream_param_changed (void                 *data,
     case SPA_PARAM_Tag:
       on_tag_param_changed (source, param);
       break;
+#ifdef HAVE_PIPEWIRE_CAPABILITIES
     case SPA_PARAM_PeerCapability:
       on_peer_capability_param_changed (source, param);
       break;
+#endif
     }
 }
 

@@ -282,6 +282,12 @@ endif
 have_remote_desktop = get_option('remote_desktop')
 if have_remote_desktop
   libpipewire_dep = dependency('libpipewire-0.3', version: libpipewire_req)
+  if libpipewire_dep.version().version_compare('>= 1.5.84')
+    add_project_arguments('-DHAVE_PIPEWIRE_CAPABILITIES', language: 'c')
+  endif
+  if libpipewire_dep.version().version_compare('>= 1.6.0')
+    add_project_arguments('-DHAVE_PIPEWIRE_DEVICE_ID', language: 'c')
+  endif
 endif
 
 have_devkit = get_option('devkit').enable_auto_if(
