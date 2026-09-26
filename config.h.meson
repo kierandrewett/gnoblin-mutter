@@ -38,6 +38,9 @@
 /* libwacom has get_num_rings() */
 #mesondefine HAVE_LIBWACOM_GET_NUM_RINGS
 
+/* Define if the Wayland compositor is enabled */
+#mesondefine HAVE_WAYLAND
+
 /* Define if you want to enable XWayland support */
 #mesondefine HAVE_XWAYLAND
 
