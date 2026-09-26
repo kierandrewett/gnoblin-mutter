@@ -46,6 +46,7 @@
 #include "config.h"
 
 #include <errno.h>
+#include <fcntl.h>
 #include <glib.h>
 #include <stdlib.h>
 #include <string.h>
@@ -177,6 +178,25 @@ unbind_resource (struct wl_resource *resource)
 }
 
 static void
+send_no_keymap (struct wl_resource *resource)
+{
+  int fd;
+
+  fd = open ("/dev/null", O_RDONLY | O_CLOEXEC);
+  if (fd == -1)
+    {
+      g_warning ("Opening /dev/null for keymap event failed: %s",
+                 strerror (errno));
+      return;
+    }
+
+  wl_keyboard_send_keymap (resource,
+                           WL_KEYBOARD_KEYMAP_FORMAT_NO_KEYMAP,
+                           fd, 0);
+  close (fd);
+}
+
+static void
 send_keymap (MetaWaylandKeyboard *keyboard,
              struct wl_resource  *resource)
 {
@@ -184,6 +204,12 @@ send_keymap (MetaWaylandKeyboard *keyboard,
   int fd;
   size_t size;
   MtkAnonymousFileMapmode mapmode;
+
+  if (!xkb_info->keymap_rofile)
+    {
+      send_no_keymap (resource);
+      return;
+    }
 
   if (wl_resource_get_version (resource) < 7)
     mapmode = MTK_ANONYMOUS_FILE_MAPMODE_SHARED;
@@ -196,6 +222,7 @@ send_keymap (MetaWaylandKeyboard *keyboard,
   if (fd == -1)
     {
       g_warning ("Creating a keymap file failed: %s", strerror (errno));
+      send_no_keymap (resource);
       return;
     }
 
@@ -224,6 +251,7 @@ meta_wayland_keyboard_take_keymap (MetaWaylandKeyboard *keyboard,
   MetaBackend *backend = backend_from_keyboard (keyboard);
   MetaWaylandXkbInfo *xkb_info = &keyboard->xkb_info;
   char *keymap_string;
+  MtkAnonymousFile *keymap_rofile;
   size_t keymap_size;
 
   if (keymap == NULL)
@@ -232,32 +260,30 @@ meta_wayland_keyboard_take_keymap (MetaWaylandKeyboard *keyboard,
       return;
     }
 
-  xkb_keymap_unref (xkb_info->keymap);
-  xkb_info->keymap = xkb_keymap_ref (keymap);
-
-  meta_wayland_keyboard_update_xkb_state (keyboard);
-
-  keymap_string =
-    xkb_keymap_get_as_string (xkb_info->keymap, XKB_KEYMAP_FORMAT_TEXT_V1);
+  keymap_string = xkb_keymap_get_as_string (keymap, XKB_KEYMAP_FORMAT_TEXT_V1);
   if (!keymap_string)
     {
       g_warning ("Failed to get string version of keymap");
       return;
     }
   keymap_size = strlen (keymap_string) + 1;
-
-  g_clear_pointer (&xkb_info->keymap_rofile, mtk_anonymous_file_free);
-  xkb_info->keymap_rofile =
+  keymap_rofile =
     mtk_anonymous_file_new ("wayland-keymap",
                             keymap_size, (const uint8_t *) keymap_string);
-
   free (keymap_string);
 
-  if (!xkb_info->keymap_rofile)
+  if (!keymap_rofile)
     {
       g_warning ("Failed to create anonymous file for keymap");
       return;
     }
+
+  g_clear_pointer (&xkb_info->keymap, xkb_keymap_unref);
+  xkb_info->keymap = xkb_keymap_ref (keymap);
+  meta_wayland_keyboard_update_xkb_state (keyboard);
+
+  g_clear_pointer (&xkb_info->keymap_rofile, mtk_anonymous_file_free);
+  xkb_info->keymap_rofile = keymap_rofile;
 
   inform_clients_of_new_keymap (keyboard);
 
@@ -679,9 +705,10 @@ meta_wayland_keyboard_update (MetaWaylandKeyboard   *keyboard,
   if (!update_pressed_keys (&keyboard->pressed_keys, evdev_code, is_press))
     return;
 
-  xkb_state_update_key (keyboard->xkb_info.state,
-                        hardware_keycode,
-                        is_press ? XKB_KEY_DOWN : XKB_KEY_UP);
+  if (keyboard->xkb_info.state)
+    xkb_state_update_key (keyboard->xkb_info.state,
+                          hardware_keycode,
+                          is_press ? XKB_KEY_DOWN : XKB_KEY_UP);
 }
 
 gboolean
