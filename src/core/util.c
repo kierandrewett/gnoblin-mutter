@@ -715,7 +715,8 @@ gnoblin_native_window_action (MetaDisplay *display,
 {
   static const char * const supported[] = {
     "above", "unabove", "stick", "unstick", "close", "minimize",
-    "restore", "maximize", "unmaximize", "fullscreen", "unfullscreen", NULL
+    "restore", "maximize", "unmaximize", "fullscreen", "unfullscreen",
+    "monitor", NULL
   };
   const char *action = NULL;
   const char *selector = "active";
@@ -771,7 +772,20 @@ gnoblin_native_window_action (MetaDisplay *display,
     goto missing_window;
 
   stable_sequence = meta_window_get_stable_sequence (window);
-  if (g_str_equal (action, "close"))
+  if (g_str_equal (action, "monitor"))
+    {
+      gint64 monitor;
+
+      if (!g_variant_lookup (arguments, "monitor", "x", &monitor) ||
+          monitor < 0 || monitor >= meta_display_get_n_monitors (display))
+        {
+          g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND,
+                               "monitor not found");
+          return NULL;
+        }
+      meta_window_move_to_monitor (window, (int) monitor);
+    }
+  else if (g_str_equal (action, "close"))
     {
       if (!meta_window_can_close (window))
         {
