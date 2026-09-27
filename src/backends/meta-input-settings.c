@@ -2305,10 +2305,13 @@ meta_input_settings_maybe_save_numlock_state (MetaInputSettings *input_settings,
                                               gboolean           numlock_state)
 {
   MetaInputSettingsPrivate *priv;
+  g_autoptr (GVariant) override = NULL;
 
   priv = meta_input_settings_get_instance_private (input_settings);
 
-  if (priv->gnoblin_config)
+  override = gnoblin_setting (input_settings, priv->keyboard_settings,
+                              "numlock-state");
+  if (override)
     {
       priv->gnoblin_numlock_state = numlock_state;
       return;
@@ -2327,11 +2330,14 @@ gboolean
 meta_input_settings_maybe_restore_numlock_state (MetaInputSettings *input_settings)
 {
   MetaInputSettingsPrivate *priv;
+  g_autoptr (GVariant) override = NULL;
   gboolean numlock_state = FALSE;
 
   priv = meta_input_settings_get_instance_private (input_settings);
 
-  if (priv->gnoblin_config)
+  override = gnoblin_setting (input_settings, priv->keyboard_settings,
+                              "numlock-state");
+  if (override)
     return input_get_boolean (input_settings, priv->keyboard_settings,
                               "remember-numlock-state")
            ? priv->gnoblin_numlock_state : FALSE;
@@ -2444,8 +2450,6 @@ meta_display_apply_gnoblin_input_config (MetaDisplay *display,
   MetaInputSettingsPrivate *priv;
   GHashTableIter iter;
   gpointer value;
-  gboolean had_gnoblin_config;
-  gboolean previous_numlock_state;
 
   g_return_if_fail (META_IS_DISPLAY (display));
   g_return_if_fail (input == NULL || g_variant_is_of_type (input, G_VARIANT_TYPE_VARDICT));
@@ -2456,8 +2460,6 @@ meta_display_apply_gnoblin_input_config (MetaDisplay *display,
     return;
 
   priv = meta_input_settings_get_instance_private (input_settings);
-  had_gnoblin_config = priv->gnoblin_config != NULL;
-  previous_numlock_state = priv->gnoblin_numlock_state;
   g_clear_pointer (&priv->gnoblin_config, g_variant_unref);
   if (input)
     priv->gnoblin_config = g_variant_ref_sink (g_variant_get_normal_form (input));
@@ -2465,23 +2467,6 @@ meta_display_apply_gnoblin_input_config (MetaDisplay *display,
   priv->gnoblin_numlock_state = input_get_boolean (input_settings,
                                                   priv->keyboard_settings,
                                                   "numlock-state");
-  if (priv->gnoblin_config)
-    {
-      GVariant *keyboard = g_variant_lookup_value (priv->gnoblin_config, "keyboard",
-                                                   G_VARIANT_TYPE_VARDICT);
-      if (keyboard)
-        {
-          gboolean has_numlock_state = g_variant_lookup (keyboard, "numlock-state", "b",
-                                                         &priv->gnoblin_numlock_state);
-          if (!has_numlock_state && had_gnoblin_config)
-            priv->gnoblin_numlock_state = previous_numlock_state;
-        }
-      else if (had_gnoblin_config)
-        {
-          priv->gnoblin_numlock_state = previous_numlock_state;
-        }
-      g_clear_pointer (&keyboard, g_variant_unref);
-    }
 
   apply_device_settings (input_settings, NULL);
   update_keyboard_repeat (input_settings);
