@@ -1204,13 +1204,14 @@ libmutter_dep = declare_dependency(
 mutter = executable('mutter',
   sources: [
     files('core/mutter.c'),
+    files('core/gnoblin-native-control.c'),
   ],
   include_directories: mutter_includes,
   c_args: [
     mutter_c_args,
     '-DG_LOG_DOMAIN="mutter"',
   ],
-  dependencies: [libmutter_dep],
+  dependencies: [libmutter_dep, dependency('json-glib-1.0')],
   install_dir: bindir,
   install: true,
 )

@@ -25,6 +25,7 @@
 #include <stdlib.h>
 
 #include "compositor/meta-plugin-manager.h"
+#include "core/gnoblin-native-control.h"
 #include "meta/main.h"
 #include "meta/meta-backend.h"
 #include "meta/meta-context.h"
@@ -156,6 +157,7 @@ main (int argc, char **argv)
   g_autoptr (MetaContext) context = NULL;
   g_autoptr (GError) error = NULL;
   g_auto (GStrv) command_argv = NULL;
+  GnoblinNativeControl *native_control = NULL;
 
   context = meta_create_context ("Mutter");
 
@@ -184,6 +186,16 @@ main (int argc, char **argv)
       return EXIT_FAILURE;
     }
 
+  if (gnoblin_config)
+    {
+      native_control = gnoblin_native_control_start (context, &error);
+      if (!native_control)
+        {
+          g_printerr ("Failed to start Gnoblin control: %s\n", error->message);
+          return EXIT_FAILURE;
+        }
+    }
+
   meta_context_notify_ready (context);
 
   if (command_argv)
@@ -202,9 +214,11 @@ main (int argc, char **argv)
 
   if (!meta_context_run_main_loop (context, &error))
     {
+      gnoblin_native_control_stop (native_control);
       g_printerr ("Mutter terminated with a failure: %s\n", error->message);
       return EXIT_FAILURE;
     }
 
+  gnoblin_native_control_stop (native_control);
   return EXIT_SUCCESS;
 }
