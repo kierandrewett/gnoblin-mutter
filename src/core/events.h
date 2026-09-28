@@ -34,3 +34,18 @@
 
 void meta_display_init_events (MetaDisplay *display);
 void meta_display_free_events (MetaDisplay *display);
+
+/* Native shortcut capture runs before normal-session keyboard consumers.
+ * While active, every key press and release is delivered to the registered
+ * handler and consumed. Other event types continue through normal handling. */
+typedef void (* MetaDisplayNativeKeyCaptureFunc) (const ClutterEvent *event,
+                                                  gpointer           user_data);
+
+gboolean meta_display_register_native_key_capture_handler (MetaDisplay                     *display,
+                                                            MetaDisplayNativeKeyCaptureFunc  callback,
+                                                            gpointer                         user_data,
+                                                            GDestroyNotify                   destroy);
+void meta_display_unregister_native_key_capture_handler (MetaDisplay *display,
+                                                         gpointer     user_data);
+gboolean meta_display_start_native_key_capture (MetaDisplay *display);
+void meta_display_stop_native_key_capture (MetaDisplay *display);

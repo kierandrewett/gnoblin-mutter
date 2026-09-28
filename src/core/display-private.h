@@ -75,6 +75,12 @@ struct _MetaDisplay
 
   int clutter_event_filter;
 
+  void (*native_key_capture_handler) (const ClutterEvent *event,
+                                      gpointer            user_data);
+  gpointer native_key_capture_data;
+  GDestroyNotify native_key_capture_destroy;
+  gboolean native_key_capture_active;
+
   /* Our best guess as to the "currently" focused window (that is, the
    * window that we expect will be focused at the point when the X
    * server processes our next request), and the serial of the request
