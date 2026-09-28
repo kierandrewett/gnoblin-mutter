@@ -1173,6 +1173,11 @@ subdir('helpers')
 
 subdir('third_party')
 
+mutter_sources += files(
+  'core/gnoblin-runtime-protocol.c',
+  'core/gnoblin-runtime-cache.c',
+)
+
 libmutter = library(libmutter_name,
   mutter_sources,
   mutter_built_sources,
@@ -1217,6 +1222,20 @@ mutter = executable('mutter',
   c_args: [
     mutter_c_args,
     '-DG_LOG_DOMAIN="mutter"',
+  ],
+  dependencies: [libmutter_dep],
+  install_dir: bindir,
+  install: true,
+)
+
+gnoblin_mutter = executable('gnoblin-mutter',
+  sources: [
+    files('core/mutter.c'),
+  ],
+  include_directories: mutter_includes,
+  c_args: [
+    mutter_c_args,
+    '-DG_LOG_DOMAIN="gnoblin-mutter"',
   ],
   dependencies: [libmutter_dep],
   install_dir: bindir,

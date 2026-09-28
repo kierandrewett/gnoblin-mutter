@@ -17,3 +17,16 @@ default_plugin = shared_module('default',
   install_rpath: pkglibdir,
   install: true,
 )
+
+gnoblin_plugin = shared_module('gnoblin',
+  sources: ['gnoblin-plugin.c'],
+  include_directories: mutter_includes,
+  c_args: default_plugin_c_args,
+  dependencies: [
+    glib_dep,
+    libmutter_clutter_dep,
+  ],
+  install_dir: pkglibdir / 'plugins',
+  install_rpath: pkglibdir,
+  install: true,
+)
