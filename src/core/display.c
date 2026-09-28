@@ -635,7 +635,7 @@ meta_display_can_start_native_key_capture (MetaDisplay *display)
 {
   MetaDisplayPrivate *priv = meta_display_get_instance_private (display);
   MetaBackend *backend = meta_context_get_backend (priv->context);
-  ClutterStage *stage = meta_backend_get_stage (backend);
+  ClutterStage *stage = CLUTTER_STAGE (meta_backend_get_stage (backend));
   gboolean stage_is_grabbed = TRUE;
 
   if (stage)
