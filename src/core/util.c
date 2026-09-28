@@ -26,6 +26,7 @@
 #include "core/util-private.h"
 #include "core/gnoblin-native-control.h"
 #include "core/gnoblin-animation.h"
+#include "wayland/gnoblin-lua-pattern.h"
 
 #include <gio/gunixinputstream.h>
 #include <glib/gstdio.h>
@@ -53,6 +54,18 @@
 #include "meta/prefs.h"
 #include "meta/window.h"
 #include "meta/workspace.h"
+
+gboolean
+meta_gnoblin_window_pattern_match (const char *pattern,
+                                   const char *value,
+                                   GError    **error)
+{
+  gboolean matched = FALSE;
+
+  if (!gnoblin_lua_pattern_match (pattern, value, &matched, error))
+    return FALSE;
+  return matched;
+}
 
 static const GDebugKey meta_debug_keys[] = {
   { "focus", META_DEBUG_FOCUS },

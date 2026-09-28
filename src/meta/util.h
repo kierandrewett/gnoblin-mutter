@@ -116,6 +116,11 @@ META_EXPORT
 const char *meta_gnoblin_layer_namespace (MetaWindow *window);
 
 META_EXPORT
+gboolean meta_gnoblin_window_pattern_match (const char *pattern,
+                                            const char *value,
+                                            GError **error);
+
+META_EXPORT
 gboolean meta_gnoblin_window_frame_set (MetaWindow *window, GVariant *policy, GError **error);
 META_EXPORT
 GVariant *meta_gnoblin_window_frame_get (MetaWindow *window);
