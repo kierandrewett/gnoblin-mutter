@@ -156,9 +156,11 @@ meta_display_handle_event (MetaDisplay        *display,
     return CLUTTER_EVENT_STOP;
 #endif
 
-  /* Shortcut capture must run after the session-lock embargo, but before
-   * captured input, accessibility, text input, global keybindings, or
-   * Wayland delivery can observe these keys. */
+  if (meta_display_process_captured_input (display, event))
+    return CLUTTER_EVENT_STOP;
+
+  /* Shortcut capture must run after session-lock and input-capture embargoes,
+   * but before accessibility, text input, keybindings, or Wayland delivery. */
   if (IS_KEY_EVENT (event_type) &&
       display->native_key_capture_active
 #ifdef HAVE_WAYLAND
@@ -170,9 +172,6 @@ meta_display_handle_event (MetaDisplay        *display,
       display->native_key_capture_handler (event, display->native_key_capture_data);
       return CLUTTER_EVENT_STOP;
     }
-
-  if (meta_display_process_captured_input (display, event))
-    return CLUTTER_EVENT_STOP;
 
   if (IS_KEY_EVENT (event_type))
     {
@@ -421,6 +420,26 @@ meta_display_unregister_native_key_capture_handler (MetaDisplay *display,
 
   if (destroy)
     destroy (callback_data);
+}
+
+void
+meta_display_cancel_native_key_capture (MetaDisplay *display)
+{
+  gpointer user_data;
+
+  g_return_if_fail (META_IS_DISPLAY (display));
+
+  if (!display->native_key_capture_active ||
+      !display->native_key_capture_handler)
+    return;
+
+  user_data = display->native_key_capture_data;
+  display->native_key_capture_handler (NULL, user_data);
+
+  /* Cancellation callbacks normally unregister themselves. Keep the hook
+   * from remaining active if a caller fails to do so. */
+  if (display->native_key_capture_handler)
+    meta_display_unregister_native_key_capture_handler (display, user_data);
 }
 
 gboolean

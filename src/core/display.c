@@ -627,6 +627,23 @@ meta_display_process_captured_input (MetaDisplay        *display,
   return meta_input_capture_process_event (input_capture, event);
 }
 
+gboolean
+meta_display_can_start_native_key_capture (MetaDisplay *display)
+{
+  MetaDisplayPrivate *priv = meta_display_get_instance_private (display);
+  MetaBackend *backend = meta_context_get_backend (priv->context);
+  ClutterStage *stage = meta_backend_get_stage (backend);
+  gboolean stage_is_grabbed = TRUE;
+
+  if (stage)
+    g_object_get (stage, "is-grabbed", &stage_is_grabbed, NULL);
+
+  /* Do not pre-empt an input-capture portal or a popup/other stage grab. */
+  return !priv->enable_input_capture &&
+         stage != NULL &&
+         !stage_is_grabbed;
+}
+
 void
 meta_display_cancel_input_capture (MetaDisplay *display)
 {
@@ -648,6 +665,7 @@ enable_input_capture (MetaInputCapture *input_capture,
   g_return_if_fail (!priv->enable_input_capture);
 
   priv->enable_input_capture = TRUE;
+  meta_display_cancel_native_key_capture (display);
 }
 
 static void
@@ -1120,6 +1138,11 @@ on_is_grabbed_changed (ClutterStage *stage,
                        MetaDisplay  *display)
 {
   MetaDisplayPrivate *priv = meta_display_get_instance_private (display);
+  gboolean is_grabbed = FALSE;
+
+  g_object_get (stage, "is-grabbed", &is_grabbed, NULL);
+  if (is_grabbed)
+    meta_display_cancel_native_key_capture (display);
 
   if (!priv->focus_on_grab_dismissed.window)
     return;

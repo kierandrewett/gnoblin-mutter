@@ -316,6 +316,9 @@ void meta_display_flush_queued_window (MetaDisplay   *display,
 gboolean meta_display_process_captured_input (MetaDisplay        *display,
                                               const ClutterEvent *event);
 
+gboolean meta_display_can_start_native_key_capture (MetaDisplay *display);
+void meta_display_cancel_native_key_capture (MetaDisplay *display);
+
 void meta_display_cancel_input_capture (MetaDisplay *display);
 
 void meta_display_handle_window_enter (MetaDisplay *display,
