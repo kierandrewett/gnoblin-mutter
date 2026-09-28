@@ -885,6 +885,12 @@ gnoblin_native_workspace_id (MetaWorkspace *workspace)
   return id;
 }
 
+const char *
+meta_gnoblin_workspace_id (MetaWorkspace *workspace)
+{
+  return gnoblin_native_workspace_id (workspace);
+}
+
 gboolean
 meta_gnoblin_initialize_native_workspaces (MetaDisplay *display,
                                            GError     **error)
