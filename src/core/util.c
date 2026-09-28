@@ -923,6 +923,7 @@ gnoblin_native_workspace_api (MetaDisplay *display,
                               g_strdup (name), g_free);
       if (activate)
         meta_workspace_activate (workspace, meta_display_get_current_time (display));
+      g_signal_emit_by_name (manager, "gnoblin-workspace-state-changed");
       return gnoblin_native_workspace_record (manager, workspace);
     }
   if (count < 1)
@@ -951,6 +952,7 @@ gnoblin_native_workspace_api (MetaDisplay *display,
             }
           g_object_set_data_full (G_OBJECT (workspace), GNOBLIN_WORKSPACE_NAME,
                                   g_strdup (name), g_free);
+          g_signal_emit_by_name (manager, "gnoblin-workspace-state-changed");
           return gnoblin_native_workspace_record (manager, workspace);
         }
       if (g_str_equal (method, "workspace.remove"))

@@ -43,6 +43,7 @@ enum
   WORKSPACE_SWITCHED,
   WORKSPACES_REORDERED,
   ACTIVE_WORKSPACE_CHANGED,
+  GNOBLIN_WORKSPACE_STATE_CHANGED,
   SHOWING_DESKTOP_CHANGED,
   LAST_SIGNAL
 };
@@ -157,6 +158,13 @@ meta_workspace_manager_class_init (MetaWorkspaceManagerClass *klass)
 
   workspace_manager_signals[ACTIVE_WORKSPACE_CHANGED] =
     g_signal_new ("active-workspace-changed",
+                  G_TYPE_FROM_CLASS (klass),
+                  G_SIGNAL_RUN_LAST,
+                  0, NULL, NULL, NULL,
+                  G_TYPE_NONE, 0);
+
+  workspace_manager_signals[GNOBLIN_WORKSPACE_STATE_CHANGED] =
+    g_signal_new ("gnoblin-workspace-state-changed",
                   G_TYPE_FROM_CLASS (klass),
                   G_SIGNAL_RUN_LAST,
                   0, NULL, NULL, NULL,
