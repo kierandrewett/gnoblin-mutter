@@ -133,3 +133,8 @@ GVariant *meta_gnoblin_dispatch_native_api (MetaDisplay *display,
 META_EXPORT
 gboolean meta_gnoblin_initialize_native_workspaces (MetaDisplay *display,
                                                      GError     **error);
+
+META_EXPORT
+void meta_display_dispatch_gnoblin_native_event (MetaDisplay *display,
+                                                 const char  *event,
+                                                 GVariant    *payload);

@@ -368,6 +368,7 @@ mutter_sources = [
   'core/startup-notification.c',
   'core/startup-notification-private.h',
   'core/util.c',
+  'core/gnoblin-animation.c',
   'core/util-private.h',
   'core/window.c',
   'core/window-private.h',

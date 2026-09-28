@@ -161,6 +161,7 @@ enum
   ACCELERATOR_DEACTIVATED,
   MODIFIERS_ACCELERATOR_ACTIVATED,
   FOCUS_WINDOW,
+  GNOBLIN_NATIVE_EVENT,
   WINDOW_CREATED,
   WINDOW_DEMANDS_ATTENTION,
   WINDOW_MARKED_URGENT,
@@ -353,6 +354,14 @@ meta_display_class_init (MetaDisplayClass *klass)
                   0,
                   NULL, NULL, NULL,
                   G_TYPE_NONE, 2, META_TYPE_WINDOW, G_TYPE_INT64);
+
+  display_signals[GNOBLIN_NATIVE_EVENT] =
+    g_signal_new ("gnoblin-native-event",
+                  G_TYPE_FROM_CLASS (klass),
+                  G_SIGNAL_RUN_LAST,
+                  0,
+                  NULL, NULL, NULL,
+                  G_TYPE_NONE, 2, G_TYPE_STRING, G_TYPE_VARIANT);
 
   display_signals[WINDOW_CREATED] =
     g_signal_new ("window-created",

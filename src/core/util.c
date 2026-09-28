@@ -25,6 +25,7 @@
 #include "core/meta-workspace-manager-private.h"
 #include "core/util-private.h"
 #include "core/gnoblin-native-control.h"
+#include "core/gnoblin-animation.h"
 
 #include <gio/gunixinputstream.h>
 #include <glib/gstdio.h>
@@ -752,6 +753,17 @@ meta_display_dispatch_gnoblin_shortcut_event (MetaDisplay *display,
   return claimed;
 }
 
+
+void
+meta_display_dispatch_gnoblin_native_event (MetaDisplay *display,
+                                            const char  *event,
+                                            GVariant    *payload)
+{
+  g_return_if_fail (META_IS_DISPLAY (display));
+  g_return_if_fail (event != NULL && *event != '\0');
+  g_return_if_fail (payload != NULL && g_variant_is_of_type (payload, G_VARIANT_TYPE_VARDICT));
+  g_signal_emit_by_name (display, "gnoblin-native-event", event, payload);
+}
 
 #define GNOBLIN_WORKSPACE_ID "gnoblin-native-id"
 #define GNOBLIN_WORKSPACE_NAME "gnoblin-native-name"
@@ -2346,6 +2358,8 @@ meta_gnoblin_dispatch_native_api (MetaDisplay *display,
       return NULL;
     }
 
+  if (g_str_has_prefix (method, "animation."))
+    return meta_gnoblin_animation_dispatch (display, method, arguments, error);
   if (g_strcmp0 (method, "window.action") == 0)
     return gnoblin_native_window_action (display, arguments, error);
   if (g_strcmp0 (method, "window.list") == 0)
