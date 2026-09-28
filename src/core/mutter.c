@@ -67,6 +67,7 @@ command_exited_cb (GPid     command_pid,
 }
 
 static const char *plugin = "libdefault";
+static gint gnoblin_runtime_fd = -1;
 static char **argv_ignored = NULL;
 
 GOptionEntry mutter_options[] = {
@@ -81,6 +82,12 @@ GOptionEntry mutter_options[] = {
     &plugin,
     N_("Mutter plugin to use"),
     "PLUGIN",
+  },
+  {
+    "gnoblin-runtime-fd", 0, G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_INT,
+    &gnoblin_runtime_fd,
+    N_("Inherited private Gnoblin supervisor channel"),
+    "FD",
   },
   {
     G_OPTION_REMAINING,
@@ -157,6 +164,8 @@ main (int argc, char **argv)
   g_autoptr (MetaContext) context = NULL;
   g_autoptr (GError) error = NULL;
   g_auto (GStrv) command_argv = NULL;
+  g_autoptr (GVariant) native_document = NULL;
+  guint64 native_settings_revision = 1;
   GnoblinNativeControl *native_control = NULL;
 
   context = meta_create_context ("Mutter");
@@ -165,6 +174,21 @@ main (int argc, char **argv)
   if (!meta_context_configure (context, &argc, &argv, &error))
     {
       g_printerr ("Failed to configure: %s\n", error->message);
+      return EXIT_FAILURE;
+    }
+
+  if (gnoblin_runtime_fd < 0)
+    {
+      g_printerr ("Gnoblin requires a supervised runtime channel\n");
+      return EXIT_FAILURE;
+    }
+
+  native_document = gnoblin_native_control_receive_runtime_config (
+    gnoblin_runtime_fd, &native_settings_revision, &error);
+  if (!native_document)
+    {
+      g_printerr ("Failed to receive Gnoblin runtime config: %s\n",
+                  error ? error->message : "invalid config packet");
       return EXIT_FAILURE;
     }
 
@@ -186,14 +210,14 @@ main (int argc, char **argv)
       return EXIT_FAILURE;
     }
 
-  if (gnoblin_config)
+  native_control = gnoblin_native_control_start (
+    context, native_document, gnoblin_runtime_fd,
+    native_settings_revision, &error);
+  if (!native_control)
     {
-      native_control = gnoblin_native_control_start (context, &error);
-      if (!native_control)
-        {
-          g_printerr ("Failed to start Gnoblin control: %s\n", error->message);
-          return EXIT_FAILURE;
-        }
+      g_printerr ("Failed to start Gnoblin control: %s\n",
+                  error ? error->message : "unknown error");
+      return EXIT_FAILURE;
     }
 
   meta_context_notify_ready (context);
