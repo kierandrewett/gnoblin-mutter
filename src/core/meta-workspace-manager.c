@@ -333,7 +333,8 @@ meta_workspace_manager_remove_workspace (MetaWorkspaceManager *workspace_manager
 
   new_num = g_list_length (workspace_manager->workspaces);
 
-  if (!meta_prefs_get_dynamic_workspaces ())
+  if (!meta_prefs_get_dynamic_workspaces () &&
+      !g_object_get_data (G_OBJECT (workspace_manager), "gnoblin-native-workspace-count"))
     meta_prefs_set_num_workspaces (new_num);
 
   /* If deleting a workspace before the current workspace, the active
@@ -389,7 +390,8 @@ meta_workspace_manager_append_new_workspace (MetaWorkspaceManager *workspace_man
 
   new_num = g_list_length (workspace_manager->workspaces);
 
-  if (!meta_prefs_get_dynamic_workspaces ())
+  if (!meta_prefs_get_dynamic_workspaces () &&
+      !g_object_get_data (G_OBJECT (workspace_manager), "gnoblin-native-workspace-count"))
     meta_prefs_set_num_workspaces (new_num);
 
   meta_display_queue_workarea_recalc (workspace_manager->display);
@@ -1039,6 +1041,12 @@ prefs_changed_callback (MetaPreference pref,
                         gpointer       data)
 {
   MetaWorkspaceManager *workspace_manager = data;
+
+  /* Native Gnoblin owns this session's count without changing GNOME's saved
+   * workspace preference. Other preferences still follow the host. */
+  if (g_object_get_data (G_OBJECT (workspace_manager), "gnoblin-native-workspace-count") &&
+      (pref == META_PREF_NUM_WORKSPACES || pref == META_PREF_DYNAMIC_WORKSPACES))
+    return;
 
   if ((pref == META_PREF_NUM_WORKSPACES ||
        pref == META_PREF_DYNAMIC_WORKSPACES) &&
