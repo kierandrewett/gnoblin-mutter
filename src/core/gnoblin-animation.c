@@ -1571,7 +1571,9 @@ static GVariant *preview_control(MetaDisplay *display, const char *method,
 }
 
 static gboolean window_rule_matches(GVariant *match, MetaWindow *window,
-                                    const char *layer_namespace) {
+                                    const char *layer_namespace,
+                                    gboolean *out_matched, GError **error) {
+  *out_matched = FALSE;
   const char *app_id = meta_window_get_gtk_application_id(window);
   const char *title = meta_window_get_title(window);
   MetaWorkspace *workspace = meta_window_get_workspace(window);
@@ -1620,18 +1622,20 @@ static gboolean window_rule_matches(GVariant *match, MetaWindow *window,
                                                       : layer_namespace;
 
       if (pattern && value) {
-        g_autoptr(GError) error = NULL;
-        matched = meta_gnoblin_window_pattern_match(pattern, value, &error);
-        if (error)
-          matched = FALSE;
+        matched = meta_gnoblin_window_pattern_match(pattern, value, error);
+        if (error && *error) {
+          g_variant_unref(expected);
+          return FALSE;
+        }
       }
     }
 
     g_variant_unref(expected);
     if (!matched)
-      return FALSE;
+      return TRUE;
   }
 
+  *out_matched = TRUE;
   return TRUE;
 }
 
@@ -1652,7 +1656,8 @@ static gboolean animation_supports_open(const char *name) {
 static gboolean select_window_open_animation(MetaWindow *window,
                                              const char *layer_namespace,
                                              char **selected_name,
-                                             GVariant **selected_overrides) {
+                                             GVariant **selected_overrides,
+                                             GError **error) {
   g_autoptr(GVariant) document = gnoblin_native_control_get_config_document(NULL);
   g_autoptr(GVariant) rules =
       document ? g_variant_lookup_value(document, "window-rules", NULL) : NULL;
@@ -1662,7 +1667,7 @@ static gboolean select_window_open_animation(MetaWindow *window,
   *selected_name = NULL;
   *selected_overrides = NULL;
   if (!rules || !g_variant_is_container(rules))
-    return FALSE;
+    return TRUE;
 
   g_variant_iter_init(&iter, rules);
   while ((rule_value = g_variant_iter_next_value(&iter))) {
@@ -1680,8 +1685,13 @@ static gboolean select_window_open_animation(MetaWindow *window,
       continue;
 
     match = lookup_field(rule, "match");
-    if (!match || !g_variant_is_of_type(match, G_VARIANT_TYPE_VARDICT) ||
-        !window_rule_matches(match, window, layer_namespace))
+    if (!match || !g_variant_is_of_type(match, G_VARIANT_TYPE_VARDICT))
+      continue;
+    gboolean rule_matches = FALSE;
+    if (!window_rule_matches(match, window, layer_namespace, &rule_matches,
+                             error))
+      return FALSE;
+    if (!rule_matches)
       continue;
     animation = lookup_field(rule, "animation");
     if (!animation)
@@ -1758,8 +1768,12 @@ static void start_window_open_animation(MetaWindowActor *window_actor) {
     return;
 
   if (!select_window_open_animation(window, layer_namespace, &name,
-                                    &overrides) ||
-      !name || g_str_equal(name, "none"))
+                                    &overrides, &error)) {
+    g_warning("failed to match Gnoblin window animation rules: %s",
+              error ? error->message : "unknown Lua pattern error");
+    return;
+  }
+  if (!name || g_str_equal(name, "none"))
     return;
   if (!parse_spec(&spec, name, "open", window, &error))
     return;
