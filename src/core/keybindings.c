@@ -38,6 +38,7 @@
 #include "core/meta-accel-parse.h"
 #include "core/meta-window-config-private.h"
 #include "core/meta-workspace-manager-private.h"
+#include "core/gnoblin-native-control.h"
 #include "compositor/meta-window-drag.h"
 #include "core/workspace-private.h"
 #include "meta/compositor.h"
@@ -1621,6 +1622,7 @@ process_overlay_key (MetaDisplay  *display,
                      MetaWindow   *window)
 {
   MetaKeyBindingManager *keys = &display->key_binding_manager;
+  ClutterModifierType modifiers = get_modifiers (event);
 
   if (display->focus_window && !keys->overlay_key_only_pressed)
     {
@@ -1629,6 +1631,19 @@ process_overlay_key (MetaDisplay  *display,
       source = clutter_event_get_source_device (event);
       if (meta_window_shortcuts_inhibited (display->focus_window, source))
         return FALSE;
+    }
+
+  /* A registered Gnoblin capture_input binding must see bare Super before
+   * Mutter lets the key sequence propagate to application clients. The
+   * native capture handler then owns the sequence until release/cancellation. */
+  if (clutter_event_type (event) == CLUTTER_KEY_PRESS &&
+      ((modifiers & ~(IGNORED_MODIFIERS)) & CLUTTER_MODIFIER_MASK) == 0 &&
+      resolved_key_combo_has_keycode (&keys->overlay_resolved_key_combo,
+                                      clutter_event_get_key_code (event)) &&
+      gnoblin_native_control_overlay_modifier_pressed (display, event))
+    {
+      keys->overlay_key_only_pressed = FALSE;
+      return CLUTTER_EVENT_STOP;
     }
 
   return process_special_modifier_key (display,
