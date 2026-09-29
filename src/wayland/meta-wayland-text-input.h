@@ -20,6 +20,7 @@
 #pragma once
 
 #include <wayland-server.h>
+#include <graphene.h>
 
 #include "meta/window.h"
 #include "wayland/meta-wayland-types.h"
@@ -43,3 +44,14 @@ gboolean meta_wayland_text_input_update (MetaWaylandTextInput *text_input,
 
 gboolean meta_wayland_text_input_handle_event (MetaWaylandTextInput *text_input,
                                                const ClutterEvent   *event);
+
+gboolean meta_wayland_text_input_get_gnoblin_state (MetaWaylandTextInput *text_input,
+                                                     guint64 *surface_id,
+                                                     guint64 *client_id,
+                                                     guint64 *focus_epoch,
+                                                     graphene_rect_t *caret_rect);
+gboolean meta_wayland_text_input_insert_gnoblin_text (MetaWaylandTextInput *text_input,
+                                                       guint64 surface_id,
+                                                       guint64 client_id,
+                                                       guint64 focus_epoch,
+                                                       const char *text);

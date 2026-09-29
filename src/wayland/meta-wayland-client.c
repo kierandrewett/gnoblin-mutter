@@ -75,7 +75,19 @@ struct _MetaWaylandClient
   char *window_tag;
 
   pid_t pid;
+  guint64 gnoblin_id;
 };
+
+static guint64 next_gnoblin_client_id;
+
+static guint64
+allocate_gnoblin_client_id (void)
+{
+  next_gnoblin_client_id++;
+  if (G_UNLIKELY (next_gnoblin_client_id == 0))
+    next_gnoblin_client_id++;
+  return next_gnoblin_client_id;
+}
 
 G_DEFINE_TYPE (MetaWaylandClient, meta_wayland_client, G_TYPE_OBJECT)
 
@@ -153,6 +165,7 @@ meta_wayland_client_new_from_wl (MetaContext      *context,
   MetaWaylandClient *client;
 
   client = g_object_new (META_TYPE_WAYLAND_CLIENT, NULL);
+  client->gnoblin_id = allocate_gnoblin_client_id ();
   client->context = context;
   client->kind = META_WAYLAND_CLIENT_KIND_PUBLIC;
   wl_client_get_credentials (wayland_client, &client->pid, NULL, NULL);
@@ -181,6 +194,7 @@ meta_wayland_client_new_create (MetaContext  *context,
     }
 
   client = g_object_new (META_TYPE_WAYLAND_CLIENT, NULL);
+  client->gnoblin_id = allocate_gnoblin_client_id ();
   client->context = context;
   client->kind = META_WAYLAND_CLIENT_KIND_CREATED;
   client->created.client_fd = client_fd[1];
@@ -377,6 +391,12 @@ const char *
 meta_wayland_client_get_window_tag (MetaWaylandClient *client)
 {
   return client->window_tag;
+}
+
+guint64
+meta_wayland_client_get_gnoblin_id (MetaWaylandClient *client)
+{
+  return client ? client->gnoblin_id : 0;
 }
 
 pid_t

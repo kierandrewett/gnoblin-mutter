@@ -76,3 +76,4 @@ void meta_wayland_client_set_window_tag (MetaWaylandClient *client,
                                          const char *window_tag);
 
 const char * meta_wayland_client_get_window_tag (MetaWaylandClient *client);
+guint64 meta_wayland_client_get_gnoblin_id (MetaWaylandClient *client);

@@ -23,6 +23,8 @@
 
 #include "wayland/meta-wayland-data-device.h"
 #include "wayland/meta-wayland-private.h"
+#include "wayland/meta-wayland-surface-private.h"
+#include "wayland/meta-wayland-client-private.h"
 #include "wayland/meta-wayland-tablet-seat.h"
 #include "wayland/meta-wayland-versions.h"
 
@@ -580,6 +582,9 @@ meta_wayland_seat_set_input_focus (MetaWaylandSeat    *seat,
     }
 
   seat->input_focus = surface;
+  seat->gnoblin_focus_epoch++;
+  if (G_UNLIKELY (seat->gnoblin_focus_epoch == 0))
+    seat->gnoblin_focus_epoch++;
 
   if (surface)
     {
@@ -599,6 +604,30 @@ MetaWaylandSurface *
 meta_wayland_seat_get_input_focus (MetaWaylandSeat *seat)
 {
   return seat->input_focus;
+}
+
+guint64
+meta_wayland_seat_get_gnoblin_focus_epoch (MetaWaylandSeat *seat)
+{
+  return seat ? seat->gnoblin_focus_epoch : 0;
+}
+
+gboolean
+meta_wayland_seat_get_gnoblin_focus_identity (MetaWaylandSeat *seat,
+                                              guint64 *surface_id,
+                                              guint64 *client_id,
+                                              guint64 *focus_epoch)
+{
+  MetaWaylandSurface *surface;
+
+  if (!seat || !surface_id || !client_id || !focus_epoch ||
+      !(surface = seat->input_focus) || !surface->resource || !surface->client)
+    return FALSE;
+
+  *surface_id = wl_resource_get_id (surface->resource);
+  *client_id = meta_wayland_client_get_gnoblin_id (surface->client);
+  *focus_epoch = seat->gnoblin_focus_epoch;
+  return *client_id != 0 && *focus_epoch != 0;
 }
 
 gboolean

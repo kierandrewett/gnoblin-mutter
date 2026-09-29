@@ -59,6 +59,7 @@ struct _MetaWaylandSeat
 
   MetaWaylandSurface *input_focus;
   gulong input_focus_destroy_id;
+  guint64 gnoblin_focus_epoch;
 
   guint capabilities;
 };
@@ -86,6 +87,11 @@ void meta_wayland_seat_set_input_focus (MetaWaylandSeat    *seat,
                                         MetaWaylandSurface *surface);
 
 MetaWaylandSurface * meta_wayland_seat_get_input_focus (MetaWaylandSeat *seat);
+guint64 meta_wayland_seat_get_gnoblin_focus_epoch (MetaWaylandSeat *seat);
+gboolean meta_wayland_seat_get_gnoblin_focus_identity (MetaWaylandSeat *seat,
+                                                        guint64 *surface_id,
+                                                        guint64 *client_id,
+                                                        guint64 *focus_epoch);
 
 gboolean meta_wayland_seat_get_grab_info (MetaWaylandSeat     *seat,
                                           MetaWaylandSurface  *surface,
