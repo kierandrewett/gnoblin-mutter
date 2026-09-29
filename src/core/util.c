@@ -2388,6 +2388,8 @@ meta_gnoblin_dispatch_native_api (MetaDisplay *display,
                                                  arguments, error);
   if (g_strcmp0 (method, "window.match") == 0)
     return gnoblin_native_window_match (display, arguments, error);
+  if (g_strcmp0 (method, "session.lock") == 0)
+    return gnoblin_native_control_request_session_lock (display, arguments, error);
   if (g_str_has_prefix (method, "launch."))
     return gnoblin_native_control_dispatch_launch (display, method,
                                                   arguments, error);
