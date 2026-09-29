@@ -210,6 +210,9 @@ main (int argc, char **argv)
       return EXIT_FAILURE;
     }
 
+  gnoblin_native_control_set_overlay_modifier_hook_available (
+    meta_context_get_display (context), TRUE);
+
   native_control = gnoblin_native_control_start (
     context, native_document, gnoblin_runtime_fd,
     native_settings_revision, &error);
