@@ -31,6 +31,7 @@
 #include "compositor/compositor-private.h"
 #include "compositor/meta-window-actor-private.h"
 #include "core/display-private.h"
+#include "core/gnoblin-native-control.h"
 #include "core/window-private.h"
 #include "meta/meta-backend.h"
 #include "wayland/meta-wayland-private.h"
@@ -353,6 +354,8 @@ event_callback (const ClutterEvent *event,
 {
   MetaDisplay *display = data;
   gboolean retval;
+
+  gnoblin_native_control_observe_key_event (display, event);
 
   display->current_time = clutter_event_get_time (event);
   retval = meta_display_handle_event (display, event, event_actor);
