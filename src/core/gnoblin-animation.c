@@ -370,11 +370,9 @@ static gboolean actor_event(const char *event) {
 
 static gboolean internal_event(const char *event) {
   static const char *const names[] = {
-      "console-open",       "console-close",
       "shadow-change",      "tile-preview-open",
       "tile-preview-close", "dialog-dim",
-      "dialog-undim",       "layer-companion-close",
-      "workspace-switch",   NULL};
+      "dialog-undim",       "workspace-switch", NULL};
   return g_strv_contains(names, event);
 }
 
