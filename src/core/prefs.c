@@ -45,7 +45,7 @@
 #include "mtk/mtk.h"
 
 #ifdef HAVE_WAYLAND
-#include "wayland/gnoblin-config.h"
+#include "core/gnoblin-native-control.h"
 #endif
 
 /* If you add a key, it needs updating in init() and in the gsettings
@@ -1425,9 +1425,8 @@ meta_prefs_init (void)
   if (is_gnoblin_session ())
     {
 #ifdef HAVE_WAYLAND
-      g_autofree char *path = gnoblin_config_path ();
-      g_autoptr (GError) error = NULL;
-      g_autoptr (GVariant) document = gnoblin_config_load_document (path, NULL, NULL, &error);
+      g_autoptr (GVariant) document =
+        gnoblin_native_control_get_config_document (NULL);
       g_autoptr (GVariant) window_management = document
         ? g_variant_lookup_value (document, "window-management", G_VARIANT_TYPE_VARDICT)
         : NULL;
