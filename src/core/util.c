@@ -1103,15 +1103,13 @@ meta_gnoblin_initialize_native_workspaces (MetaDisplay *display,
 
           if (g_strcmp0 (id, declaration->id) == 0)
             {
-              int workspace_index_in_manager = meta_workspace_index (workspace);
+              /* Lua config owns these names; do not persist them in Mutter settings. */
               g_object_set_data (G_OBJECT (workspace),
                                  GNOBLIN_WORKSPACE_PERSISTENT,
                                  GINT_TO_POINTER (1));
               g_object_set_data_full (G_OBJECT (workspace),
                                       GNOBLIN_WORKSPACE_NAME,
                                       g_strdup (declaration->name), g_free);
-              meta_prefs_change_workspace_name (workspace_index_in_manager,
-                                                declaration->name);
               break;
             }
         }
