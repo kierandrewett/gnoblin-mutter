@@ -99,6 +99,16 @@ struct _MetaX11Display
   Atom wm_sn_atom;
   guint32 wm_sn_timestamp;
 
+  Window xsettings_selection_window;
+  Atom xsettings_selection_atom;
+  Atom xsettings_settings_atom;
+  Atom xsettings_resource_manager_atom;
+  unsigned int xsettings_event_filter_id;
+  guint32 xsettings_serial;
+  int xsettings_scale;
+  GPtrArray *xsettings_original_resource_lines;
+  char *xsettings_last_resource_line;
+
   guint display_close_idle;
   guint32 xselectionclear_timestamp;
 
