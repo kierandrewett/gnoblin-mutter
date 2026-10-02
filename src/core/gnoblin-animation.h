@@ -8,6 +8,15 @@
 
 void meta_gnoblin_animation_window_mapped (MetaWindowActor *window_actor);
 META_EXPORT
+void meta_gnoblin_animation_size_change (MetaPlugin       *plugin,
+                                         MetaWindowActor  *window_actor,
+                                         MetaSizeChange    which_change,
+                                         MtkRectangle     *old_frame_rect,
+                                         MtkRectangle     *old_buffer_rect);
+META_EXPORT
+void meta_gnoblin_animation_size_changed (MetaPlugin      *plugin,
+                                          MetaWindowActor *window_actor);
+META_EXPORT
 gboolean meta_gnoblin_animation_window_destroying (MetaPlugin *plugin,
                                                    MetaWindowActor *window_actor);
 META_EXPORT

@@ -69,6 +69,8 @@ void meta_window_actor_frame_complete (MetaWindowActor    *self,
 META_EXPORT_TEST
 gboolean meta_window_actor_effect_in_progress  (MetaWindowActor *self);
 
+gboolean meta_window_actor_size_change_in_progress (MetaWindowActor *self);
+
 MetaWindowActorChanges meta_window_actor_sync_actor_geometry (MetaWindowActor *self,
                                                               gboolean         did_placement);
 

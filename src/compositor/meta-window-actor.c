@@ -849,6 +849,15 @@ meta_window_actor_effect_in_progress (MetaWindowActor *self)
           priv->destroy_in_progress);
 }
 
+gboolean
+meta_window_actor_size_change_in_progress (MetaWindowActor *self)
+{
+  MetaWindowActorPrivate *priv =
+    meta_window_actor_get_instance_private (self);
+
+  return priv->size_change_in_progress > 0;
+}
+
 static gboolean
 is_freeze_thaw_effect (MetaPluginEffect event)
 {
