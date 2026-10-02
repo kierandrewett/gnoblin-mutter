@@ -505,6 +505,12 @@ meta_input_settings_native_set_keyboard_repeat (MetaInputSettings *settings,
                                               enabled, delay, interval);
 }
 
+/* Keep Gnoblin's custom profile value available with pre-51 schema headers. */
+enum
+{
+  META_POINTER_ACCEL_PROFILE_CUSTOM = 3,
+};
+
 static void
 set_device_accel_profile (ClutterInputDevice          *device,
                           GDesktopPointerAccelProfile  profile,
@@ -524,7 +530,7 @@ set_device_accel_profile (ClutterInputDevice          *device,
     case G_DESKTOP_POINTER_ACCEL_PROFILE_ADAPTIVE:
       libinput_profile = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE;
       break;
-    case G_DESKTOP_POINTER_ACCEL_PROFILE_CUSTOM:
+    case META_POINTER_ACCEL_PROFILE_CUSTOM:
       libinput_profile = LIBINPUT_CONFIG_ACCEL_PROFILE_CUSTOM;
       break;
     default:
