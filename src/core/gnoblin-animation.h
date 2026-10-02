@@ -11,6 +11,12 @@ META_EXPORT
 gboolean meta_gnoblin_animation_window_destroying (MetaPlugin *plugin,
                                                    MetaWindowActor *window_actor);
 META_EXPORT
+gboolean meta_gnoblin_animation_window_minimizing (MetaPlugin *plugin,
+                                                    MetaWindowActor *window_actor);
+META_EXPORT
+gboolean meta_gnoblin_animation_window_restoring (MetaPlugin *plugin,
+                                                   MetaWindowActor *window_actor);
+META_EXPORT
 void meta_gnoblin_animation_cancel_window_effects (MetaPlugin       *plugin,
                                                    MetaWindowActor *window_actor);
 GVariant * meta_gnoblin_animation_dispatch (MetaDisplay *display,
