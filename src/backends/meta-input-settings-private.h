@@ -212,6 +212,12 @@ void meta_input_settings_notify_kbd_a11y_change (MetaInputSettings     *input_se
                                                  MetaKeyboardA11yFlags  new_flags,
                                                  MetaKeyboardA11yFlags  what_changed);
 
+/* Returns the effective value from Gnoblin config or the GSettings fallback. */
+void meta_input_settings_get_keyboard_repeat (MetaInputSettings *input_settings,
+                                             gboolean          *repeat,
+                                             guint             *delay,
+                                             guint             *interval);
+
 MetaBackend * meta_input_settings_get_backend (MetaInputSettings *input_settings);
 
 double meta_input_settings_get_touchpad_scroll_speed (MetaInputSettings *input_settings);

@@ -99,6 +99,9 @@ struct _MetaInputSettingsPrivate
   GHashTable *two_finger_devices;
 
   MetaKbdA11ySettings kbd_a11y_settings;
+  gboolean keyboard_repeat;
+  guint keyboard_repeat_delay;
+  guint keyboard_repeat_interval;
   GVariant *gnoblin_config;
   gboolean gnoblin_numlock_state;
 };
@@ -122,6 +125,7 @@ G_DEFINE_TYPE_WITH_PRIVATE (MetaInputSettings, meta_input_settings, G_TYPE_OBJEC
 enum
 {
   KBD_A11Y_CHANGED,
+  KEYBOARD_REPEAT_CHANGED,
   N_SIGNALS
 };
 
@@ -1411,6 +1415,12 @@ update_keyboard_repeat (MetaInputSettings *input_settings)
   input_settings_class = META_INPUT_SETTINGS_GET_CLASS (input_settings);
   input_settings_class->set_keyboard_repeat (input_settings,
                                              repeat, delay, interval);
+
+  priv->keyboard_repeat = repeat;
+  priv->keyboard_repeat_delay = delay;
+  priv->keyboard_repeat_interval = interval;
+
+  g_signal_emit (input_settings, signals[KEYBOARD_REPEAT_CHANGED], 0);
 }
 
 static void
@@ -2258,6 +2268,13 @@ meta_input_settings_class_init (MetaInputSettingsClass *klass)
                   G_TYPE_NONE, 1,
                   G_TYPE_POINTER);
 
+  signals[KEYBOARD_REPEAT_CHANGED] =
+    g_signal_new ("keyboard-repeat-changed",
+                  G_TYPE_FROM_CLASS (object_class),
+                  G_SIGNAL_RUN_LAST,
+                  0, NULL, NULL, NULL,
+                  G_TYPE_NONE, 0);
+
 }
 
 static void
@@ -2481,6 +2498,26 @@ meta_display_apply_gnoblin_input_config (MetaDisplay *display,
       CurrentToolInfo *tool_info = value;
       apply_stylus_settings (input_settings, tool_info->device, tool_info->tool);
     }
+}
+
+void
+meta_input_settings_get_keyboard_repeat (MetaInputSettings *input_settings,
+                                        gboolean          *repeat,
+                                        guint             *delay,
+                                        guint             *interval)
+{
+  MetaInputSettingsPrivate *priv;
+
+  g_return_if_fail (META_IS_INPUT_SETTINGS (input_settings));
+
+  priv = meta_input_settings_get_instance_private (input_settings);
+
+  if (repeat)
+    *repeat = priv->keyboard_repeat;
+  if (delay)
+    *delay = priv->keyboard_repeat_delay;
+  if (interval)
+    *interval = priv->keyboard_repeat_interval;
 }
 
 GDesktopStylusButtonAction
