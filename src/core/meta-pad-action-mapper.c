@@ -184,6 +184,82 @@ lookup_pad_button_settings (ClutterInputDevice *device,
   return get_pad_feature_gsettings (device, "button", button, NULL);
 }
 
+static gboolean
+meta_pad_action_mapper_get_gnoblin_button_override (MetaPadActionMapper     *mapper,
+                                                    ClutterInputDevice      *pad,
+                                                    guint                    button,
+                                                    GDesktopPadButtonAction *action,
+                                                    char                   **keybinding)
+{
+  MetaTabletActionMapperClass *tablet_klass =
+    META_TABLET_ACTION_MAPPER_GET_CLASS (mapper);
+  MetaDisplay *display = tablet_klass->get_display (META_TABLET_ACTION_MAPPER (mapper));
+  g_autoptr (GVariant) input = meta_display_get_gnoblin_input_config (display);
+  g_autoptr (GVariant) tablets = NULL;
+  g_autofree char *device_id = NULL;
+  g_autoptr (GVariant) tablet = NULL;
+  g_autoptr (GVariant) buttons = NULL;
+
+  if (keybinding)
+    *keybinding = NULL;
+  if (!input)
+    return FALSE;
+
+  tablets = g_variant_lookup_value (input, "tablets", G_VARIANT_TYPE_VARDICT);
+  if (!tablets)
+    return FALSE;
+
+  device_id = g_strdup_printf ("%.4x:%.4x",
+                               clutter_input_device_get_vendor_id (pad),
+                               clutter_input_device_get_product_id (pad));
+  tablet = g_variant_lookup_value (tablets, device_id, G_VARIANT_TYPE_VARDICT);
+  if (!tablet)
+    return FALSE;
+
+  buttons = g_variant_lookup_value (tablet, "pad-buttons", G_VARIANT_TYPE ("av"));
+  if (!buttons)
+    return FALSE;
+
+  for (gsize i = 0; i < g_variant_n_children (buttons); i++)
+    {
+      g_autoptr (GVariant) boxed = g_variant_get_child_value (buttons, i);
+      g_autoptr (GVariant) entry = g_variant_get_variant (boxed);
+      g_autoptr (GVariant) action_value = NULL;
+      guint configured_button;
+      const char *action_name;
+
+      if (!g_variant_lookup (entry, "button", "u", &configured_button) ||
+          configured_button != button ||
+          !g_variant_lookup (entry, "action", "&s", &action_name))
+        continue;
+
+      if (g_str_equal (action_name, "default"))
+        return FALSE;
+      if (g_str_equal (action_name, "none"))
+        *action = G_DESKTOP_PAD_BUTTON_ACTION_NONE;
+      else if (g_str_equal (action_name, "help"))
+        *action = G_DESKTOP_PAD_BUTTON_ACTION_HELP;
+      else if (g_str_equal (action_name, "switch-monitor"))
+        *action = G_DESKTOP_PAD_BUTTON_ACTION_SWITCH_MONITOR;
+      else if (g_str_equal (action_name, "keybinding"))
+        {
+          *action = G_DESKTOP_PAD_BUTTON_ACTION_KEYBINDING;
+          action_value = g_variant_lookup_value (entry, "keybinding",
+                                                 G_VARIANT_TYPE_STRING);
+          if (!action_value)
+            return FALSE;
+          if (keybinding)
+            *keybinding = g_variant_dup_string (action_value, NULL);
+        }
+      else
+        return FALSE;
+
+      return TRUE;
+    }
+
+  return FALSE;
+}
+
 static GSettings *
 lookup_pad_feature_settings (ClutterInputDevice *device,
                              MetaPadFeatureType  feature,
@@ -239,6 +315,10 @@ meta_pad_action_mapper_get_button_action (MetaPadActionMapper *mapper,
   g_return_val_if_fail (CLUTTER_IS_INPUT_DEVICE (pad),
                         G_DESKTOP_PAD_BUTTON_ACTION_NONE);
 
+  if (meta_pad_action_mapper_get_gnoblin_button_override (mapper, pad, button,
+                                                          &action, NULL))
+    return action;
+
   settings = lookup_pad_button_settings (pad, button);
   action = g_settings_get_enum (settings, "action");
   g_object_unref (settings);
@@ -272,6 +352,7 @@ meta_pad_action_mapper_handle_button (MetaPadActionMapper *mapper,
   gboolean is_press;
   GSettings *settings;
   char *accel;
+  g_autofree char *gnoblin_keybinding = NULL;
   uint32_t button, mode;
   MetaDisplay *display;
 
@@ -308,7 +389,9 @@ meta_pad_action_mapper_handle_button (MetaPadActionMapper *mapper,
       info->group_modes[group] = mode;
     }
 
-  action = meta_pad_action_mapper_get_button_action (mapper, pad, button);
+  if (!meta_pad_action_mapper_get_gnoblin_button_override (mapper, pad, button,
+                                                          &action, &gnoblin_keybinding))
+    action = meta_pad_action_mapper_get_button_action (mapper, pad, button);
 
   switch (action)
     {
@@ -321,10 +404,15 @@ meta_pad_action_mapper_handle_button (MetaPadActionMapper *mapper,
         meta_display_request_pad_osd (display, pad, FALSE);
       return TRUE;
     case G_DESKTOP_PAD_BUTTON_ACTION_KEYBINDING:
-      settings = lookup_pad_button_settings (pad, button);
-      accel = g_settings_get_string (settings, "keybinding");
+      if (gnoblin_keybinding)
+        accel = g_steal_pointer (&gnoblin_keybinding);
+      else
+        {
+          settings = lookup_pad_button_settings (pad, button);
+          accel = g_settings_get_string (settings, "keybinding");
+          g_object_unref (settings);
+        }
       tablet_klass->emulate_keybinding (tablet_mapper, accel, is_press);
-      g_object_unref (settings);
       g_free (accel);
       return TRUE;
     case G_DESKTOP_PAD_BUTTON_ACTION_NONE:
@@ -631,6 +719,13 @@ meta_pad_action_mapper_get_button_label (MetaPadActionMapper *mapper,
     {
     case G_DESKTOP_PAD_BUTTON_ACTION_KEYBINDING:
       {
+        g_autofree char *gnoblin_keybinding = NULL;
+
+        if (meta_pad_action_mapper_get_gnoblin_button_override (
+              mapper, pad, button, &action, &gnoblin_keybinding) &&
+            gnoblin_keybinding)
+          return g_steal_pointer (&gnoblin_keybinding);
+
         GSettings *settings;
         char *accel;
 

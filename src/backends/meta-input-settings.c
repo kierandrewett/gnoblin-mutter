@@ -2608,6 +2608,24 @@ meta_display_apply_gnoblin_input_config (MetaDisplay *display,
     }
 }
 
+GVariant *
+meta_display_get_gnoblin_input_config (MetaDisplay *display)
+{
+  MetaBackend *backend;
+  MetaInputSettings *input_settings;
+  MetaInputSettingsPrivate *priv;
+
+  g_return_val_if_fail (META_IS_DISPLAY (display), NULL);
+
+  backend = meta_context_get_backend (meta_display_get_context (display));
+  input_settings = meta_backend_get_input_settings (backend);
+  if (!input_settings)
+    return NULL;
+
+  priv = meta_input_settings_get_instance_private (input_settings);
+  return priv->gnoblin_config ? g_variant_ref (priv->gnoblin_config) : NULL;
+}
+
 void
 meta_input_settings_get_keyboard_repeat (MetaInputSettings *input_settings,
                                         gboolean          *repeat,

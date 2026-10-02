@@ -105,6 +105,17 @@ META_EXPORT
 void meta_display_apply_gnoblin_input_config (MetaDisplay *display,
                                               GVariant    *input);
 
+/**
+ * meta_display_get_gnoblin_input_config:
+ * @display: a #MetaDisplay
+ *
+ * Get the current in-memory Gnoblin input settings overlay.
+ *
+ * Returns: (transfer full) (nullable): the input settings dictionary
+ */
+META_EXPORT
+GVariant * meta_display_get_gnoblin_input_config (MetaDisplay *display);
+
 META_EXPORT
 gboolean meta_display_dispatch_gnoblin_event (MetaDisplay *display,
                                           const char  *event,
