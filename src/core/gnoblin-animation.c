@@ -123,10 +123,6 @@ static const BuiltinAnimation builtins[] = {
     {"slide", NULL},
     {"none", NULL},
     {"gnome-resize", "resize"},
-    {"gnome-tile-preview-open", "tile-preview-open"},
-    {"gnome-tile-preview-close", "tile-preview-close"},
-    {"gnome-dialog-dim", "dialog-dim"},
-    {"gnome-dialog-undim", "dialog-undim"},
     {"gnoblin-shadow-change", "shadow-change"},
     {NULL, NULL}};
 
@@ -449,10 +445,7 @@ static gboolean actor_event(const char *event) {
 }
 
 static gboolean internal_event(const char *event) {
-  static const char *const names[] = {
-      "shadow-change",      "tile-preview-open",
-      "tile-preview-close", "dialog-dim",
-      "dialog-undim", NULL};
+  static const char *const names[] = {"shadow-change", NULL};
   return g_strv_contains(names, event);
 }
 
