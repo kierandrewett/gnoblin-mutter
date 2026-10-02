@@ -1211,6 +1211,8 @@ meta_prefs_apply_gnoblin_compositor_preferences (GVariant *preferences)
   };
   gboolean boolean_value;
   gint integer_value;
+  const char *locate_pointer_key = "Control_L";
+  gpointer ignored = NULL;
 
   if (!is_gnoblin_session ())
     return;
@@ -1231,6 +1233,15 @@ meta_prefs_apply_gnoblin_compositor_preferences (GVariant *preferences)
   APPLY_BOOL ("audible-bell", bell_is_audible, TRUE, META_PREF_AUDIBLE_BELL);
   APPLY_ENUM ("visual-bell-type", visual_bell_type, visual_bell_types,
               G_DESKTOP_VISUAL_BELL_FULLSCREEN_FLASH, META_PREF_VISUAL_BELL_TYPE);
+
+  if (preferences)
+    g_variant_lookup (preferences, "locate-pointer-key", "&s",
+                      &locate_pointer_key);
+  g_autoptr (GVariant) locate_pointer_key_value =
+    g_variant_ref_sink (g_variant_new_string (locate_pointer_key));
+  if (!locate_pointer_key_handler (locate_pointer_key_value, &ignored, NULL))
+    meta_topic (META_DEBUG_KEYBINDINGS,
+                "Failed to apply Gnoblin locate-pointer-key preference");
 
 #undef APPLY_BOOL
 #undef APPLY_ENUM
@@ -1301,7 +1312,7 @@ gnoblin_owns_compositor_preference (const char *key)
 {
   static const char *const keys[] = {
     "enable-animations", "locate-pointer", "visual-bell", "audible-bell",
-    "visual-bell-type", "check-alive-timeout", NULL
+    "visual-bell-type", "locate-pointer-key", "check-alive-timeout", NULL
   };
   for (int i = 0; keys[i]; i++)
     if (g_str_equal (key, keys[i]))
