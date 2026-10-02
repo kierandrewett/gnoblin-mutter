@@ -100,6 +100,12 @@ on_devkit_died (GObject      *source_object,
         return;
     }
 
+  if (g_getenv ("GNOBLIN_DEVKIT_KEEP_SESSION"))
+    {
+      g_warning ("Devkit viewer exited; keeping the compositor session alive");
+      return;
+    }
+
   meta_context_terminate (context);
 }
 
