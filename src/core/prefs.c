@@ -33,11 +33,14 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "backends/meta-backend-private.h"
 #include "compositor/meta-plugin-manager.h"
 #include "core/keybindings-private.h"
 #include "core/meta-accel-parse.h"
 #include "core/prefs-private.h"
 #include "core/util-private.h"
+#include "clutter/clutter-context.h"
+#include "clutter/clutter-settings-private.h"
 #include "meta/prefs.h"
 #include "mtk/mtk.h"
 
@@ -114,6 +117,7 @@ static char *cursor_theme = NULL;
 static int   cursor_size = 24;
 static int   draggable_border_width = 10;
 static int   drag_threshold;
+static gboolean gnoblin_drag_threshold_configured;
 static gboolean resize_with_right_button = FALSE;
 static gboolean edge_tiling = FALSE;
 static gboolean force_fullscreen = TRUE;
@@ -1218,6 +1222,48 @@ gnoblin_owns_window_preference (const char *key)
   return FALSE;
 }
 
+void
+meta_prefs_apply_gnoblin_input_preferences (MetaBackend *backend,
+                                            GVariant    *input)
+{
+  g_autoptr (GVariant) mouse = input
+    ? g_variant_lookup_value (input, "mouse", G_VARIANT_TYPE_VARDICT)
+    : NULL;
+  int configured_threshold;
+  gboolean configured;
+  int threshold;
+
+  g_return_if_fail (META_IS_BACKEND (backend));
+
+  if (!is_gnoblin_session ())
+    return;
+
+  configured = mouse &&
+               g_variant_lookup (mouse, "drag-threshold", "i",
+                                 &configured_threshold);
+  threshold = configured
+    ? configured_threshold
+    : g_settings_get_int (SETTINGS (SCHEMA_MOUSE), "drag-threshold");
+
+  gnoblin_drag_threshold_configured = configured;
+  if (drag_threshold != threshold)
+    {
+      drag_threshold = threshold;
+      queue_changed (META_PREF_DRAG_THRESHOLD);
+    }
+
+  {
+    ClutterContext *clutter_context =
+      meta_backend_get_clutter_context (backend);
+    ClutterSettings *clutter_settings =
+      clutter_context_get_settings (clutter_context);
+
+    _clutter_settings_set_gnoblin_drag_threshold (clutter_settings,
+                                                  configured,
+                                                  threshold);
+  }
+}
+
 static gboolean
 gnoblin_owns_compositor_preference (const char *key)
 {
@@ -1407,6 +1453,9 @@ settings_changed (GSettings *settings,
   if (is_gnoblin_session () && gnoblin_owns_window_preference (key))
     return;
   if (is_gnoblin_session () && gnoblin_owns_compositor_preference (key))
+    return;
+  if (is_gnoblin_session () && gnoblin_drag_threshold_configured &&
+      settings == SETTINGS (SCHEMA_MOUSE) && g_str_equal (key, "drag-threshold"))
     return;
   if (is_gnoblin_session () && SETTINGS (SCHEMA_INPUT_SOURCES) == settings &&
       g_str_equal (key, KEY_XKB_OPTIONS))

@@ -115,6 +115,10 @@ META_EXPORT
 void meta_prefs_apply_gnoblin_compositor_preferences (GVariant *preferences);
 
 META_EXPORT
+void meta_prefs_apply_gnoblin_input_preferences (MetaBackend *backend,
+                                                 GVariant    *input);
+
+META_EXPORT
 void meta_prefs_apply_gnoblin_keyboard_preferences (GVariant *preferences);
 
 META_EXPORT

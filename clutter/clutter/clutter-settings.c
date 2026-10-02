@@ -47,6 +47,8 @@ struct _ClutterSettings
   gint double_click_distance;
 
   gint dnd_drag_threshold;
+  gboolean gnoblin_drag_threshold_configured;
+  gint gnoblin_drag_threshold;
 
   gdouble resolution;
 
@@ -221,12 +223,26 @@ sync_mouse_options (ClutterSettings *self)
   int drag_threshold;
 
   double_click = g_settings_get_int (self->mouse_settings, "double-click");
-  drag_threshold = g_settings_get_int (self->mouse_settings, "drag-threshold");
+  drag_threshold = self->gnoblin_drag_threshold_configured
+                   ? self->gnoblin_drag_threshold
+                   : g_settings_get_int (self->mouse_settings, "drag-threshold");
 
   g_object_set (self,
 		"double-click-time", double_click,
 		"dnd-drag-threshold", drag_threshold,
                 NULL);
+}
+
+void
+_clutter_settings_set_gnoblin_drag_threshold (ClutterSettings *settings,
+                                              gboolean         configured,
+                                              int              threshold)
+{
+  g_return_if_fail (CLUTTER_IS_SETTINGS (settings));
+
+  settings->gnoblin_drag_threshold_configured = configured;
+  settings->gnoblin_drag_threshold = threshold;
+  sync_mouse_options (settings);
 }
 
 #ifdef HAVE_FONTS
