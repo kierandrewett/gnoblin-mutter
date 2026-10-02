@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <gio/gio.h>
 #include <glib-object.h>
 
 #include "backends/meta-backend-types.h"
@@ -44,6 +45,9 @@ G_DECLARE_FINAL_TYPE (MetaSettings, meta_settings,
                       META, SETTINGS, GObject)
 
 MetaSettings * meta_settings_new (MetaBackend *backend);
+
+void meta_settings_apply_gnoblin_xwayland_preferences (MetaSettings *settings,
+                                                        GVariant    *preferences);
 
 void meta_settings_post_init (MetaSettings *settings);
 
