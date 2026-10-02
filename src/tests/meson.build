@@ -1278,6 +1278,13 @@ endif
 # Miscellaneous tests
 test_cases += [
   {
+    'name': 'a11y-gnoblin-settings',
+    'suite': 'a11y',
+    'sources': [
+      'a11y-gnoblin-settings-test.c',
+    ],
+  },
+  {
     'name': 'service-channel',
     'suite': 'wayland',
     'sources': [
