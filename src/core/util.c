@@ -2084,6 +2084,7 @@ gnoblin_native_typed_window_operation (MetaDisplay *display,
   if (g_str_equal (method, "window.close") ||
       g_str_equal (method, "window.minimize") ||
       g_str_equal (method, "window.toggle_minimize") ||
+      g_str_equal (method, "window.unminimize") ||
       g_str_equal (method, "window.restore"))
     allowed = id_keys;
   else if (g_str_equal (method, "window.set_maximized") ||
