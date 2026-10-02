@@ -19,6 +19,13 @@ gboolean meta_gnoblin_animation_window_restoring (MetaPlugin *plugin,
 META_EXPORT
 void meta_gnoblin_animation_cancel_window_effects (MetaPlugin       *plugin,
                                                    MetaWindowActor *window_actor);
+META_EXPORT
+gboolean meta_gnoblin_animation_switch_workspace (MetaPlugin *plugin,
+                                                    gint from,
+                                                    gint to,
+                                                    MetaMotionDirection direction);
+META_EXPORT
+void meta_gnoblin_animation_kill_switch_workspace (MetaPlugin *plugin);
 GVariant * meta_gnoblin_animation_dispatch (MetaDisplay *display,
                                              const char  *method,
                                              GVariant    *arguments,
