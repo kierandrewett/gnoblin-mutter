@@ -825,7 +825,7 @@ static void
 meta_input_settings_native_set_eraser_button_action (MetaInputSettings              *settings,
                                                      ClutterInputDevice             *device,
                                                      ClutterInputDeviceTool         *tool,
-                                                     GDesktopStylusEraserButtonMode  mode,
+                                                     MetaStylusEraserButtonMode      mode,
                                                      GDesktopStylusButtonAction      action)
 {
   if (!clutter_input_device_tool_has_eraser_button (tool))

@@ -373,6 +373,7 @@ input_get_enum (MetaInputSettings *input_settings,
           static const char * const tap_map[] = { "default", "lrm", "lmr", NULL };
           static const char * const click[] = { "default", "none", "areas", "fingers", NULL };
           static const char * const mapping[] = { "absolute", "relative", NULL };
+          static const char * const eraser_mode[] = { "default", "button", NULL };
           static const char * const stylus[] = {
             "default", "middle", "right", "back", "forward",
             "switch-monitor", "keybinding", NULL
@@ -390,6 +391,8 @@ input_get_enum (MetaInputSettings *input_settings,
             nicks = click;
           else if (g_str_equal (key, "mapping"))
             nicks = mapping;
+          else if (g_str_equal (key, "eraser-button-mode"))
+            nicks = eraser_mode;
           else if (g_str_has_suffix (key, "button-action"))
             nicks = stylus;
 
@@ -2040,7 +2043,7 @@ update_stylus_eraserbutton (MetaInputSettings      *input_settings,
                             ClutterInputDeviceTool *tool)
 {
   MetaInputSettingsClass *input_settings_class;
-  GDesktopStylusEraserButtonMode mode;
+  MetaStylusEraserButtonMode mode;
   GDesktopStylusButtonAction action;
   GSettings *tool_settings;
 
@@ -2053,8 +2056,8 @@ update_stylus_eraserbutton (MetaInputSettings      *input_settings,
 
   tool_settings = lookup_tool_settings (tool, device);
 
-  mode = g_settings_get_enum (tool_settings, "eraser-button-mode");
-  action = g_settings_get_enum (tool_settings, "eraser-button-action");
+  mode = input_get_enum (input_settings, tool_settings, "eraser-button-mode");
+  action = input_get_enum (input_settings, tool_settings, "eraser-button-action");
 
   input_settings_class = META_INPUT_SETTINGS_GET_CLASS (input_settings);
   input_settings_class->set_eraser_button_action (input_settings, device, tool,
@@ -2620,9 +2623,22 @@ meta_input_settings_get_eraser_button_action (MetaInputSettings       *input_set
   g_return_val_if_fail (META_IS_INPUT_SETTINGS (input_settings), G_DESKTOP_STYLUS_BUTTON_ACTION_DEFAULT);
 
   settings = lookup_tool_settings (tool, device);
-  action = g_settings_get_enum (settings, "eraser-button-action");
+  action = input_get_enum (input_settings, settings, "eraser-button-action");
   if (keybinding && action == G_DESKTOP_STYLUS_BUTTON_ACTION_KEYBINDING)
-    *keybinding = g_settings_get_string (settings, "eraser-button-keybinding");
+    {
+      GVariant *value = gnoblin_setting (input_settings, settings,
+                                         "eraser-button-keybinding");
+
+      if (value && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
+        *keybinding = g_variant_dup_string (value, NULL);
+      else if (input_settings_has_key (input_settings, settings,
+                                       "eraser-button-keybinding"))
+        *keybinding = g_settings_get_string (settings, "eraser-button-keybinding");
+      else
+        *keybinding = g_strdup ("");
+
+      g_clear_pointer (&value, g_variant_unref);
+    }
 
   return action;
 }

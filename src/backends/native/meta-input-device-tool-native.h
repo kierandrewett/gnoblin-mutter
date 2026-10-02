@@ -26,6 +26,7 @@
 #include <graphene.h>
 #include <libinput.h>
 
+#include "backends/meta-input-settings-private.h"
 #include "backends/native/meta-bezier.h"
 #include "clutter/clutter.h"
 
@@ -62,7 +63,7 @@ void                     meta_input_device_tool_native_set_button_code_in_impl (
 GDesktopStylusButtonAction meta_input_device_tool_native_get_eraser_button_code_in_impl (ClutterInputDeviceTool *tool);
 
 void                       meta_input_device_tool_native_set_eraser_button_action_in_impl (ClutterInputDeviceTool         *tool,
-                                                                                           GDesktopStylusEraserButtonMode  mode,
+                                                                                           MetaStylusEraserButtonMode      mode,
                                                                                            GDesktopStylusButtonAction      action);
 
 G_END_DECLS

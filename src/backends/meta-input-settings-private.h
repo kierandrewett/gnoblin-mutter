@@ -31,6 +31,12 @@
 #include "clutter/clutter.h"
 #include "meta/display.h"
 
+typedef enum
+{
+  META_STYLUS_ERASER_BUTTON_MODE_DEFAULT,
+  META_STYLUS_ERASER_BUTTON_MODE_BUTTON,
+} MetaStylusEraserButtonMode;
+
 #define META_TYPE_INPUT_SETTINGS (meta_input_settings_get_type ())
 G_DECLARE_DERIVABLE_TYPE (MetaInputSettings, meta_input_settings,
                           META, INPUT_SETTINGS, GObject)
@@ -165,7 +171,7 @@ struct _MetaInputSettingsClass
   void (* set_eraser_button_action) (MetaInputSettings              *settings,
                                      ClutterInputDevice             *device,
                                      ClutterInputDeviceTool         *tool,
-                                     GDesktopStylusEraserButtonMode  mode,
+                                     MetaStylusEraserButtonMode      mode,
                                      GDesktopStylusButtonAction      button);
 
   void (* set_mouse_middle_click_emulation) (MetaInputSettings  *settings,

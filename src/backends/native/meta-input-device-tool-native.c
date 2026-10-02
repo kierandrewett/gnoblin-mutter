@@ -181,7 +181,7 @@ meta_input_device_tool_native_set_button_code_in_impl (ClutterInputDeviceTool   
 
 void
 meta_input_device_tool_native_set_eraser_button_action_in_impl (ClutterInputDeviceTool         *tool,
-                                                                GDesktopStylusEraserButtonMode  mode,
+                                                                MetaStylusEraserButtonMode      mode,
                                                                 GDesktopStylusButtonAction      action)
 {
   MetaInputDeviceToolNative *evdev_tool;
@@ -190,10 +190,10 @@ meta_input_device_tool_native_set_eraser_button_action_in_impl (ClutterInputDevi
 
   switch (mode)
     {
-    case G_DESKTOP_STYLUS_ERASER_BUTTON_MODE_DEFAULT:
+    case META_STYLUS_ERASER_BUTTON_MODE_DEFAULT:
       libinput_mode = LIBINPUT_CONFIG_ERASER_BUTTON_DEFAULT;
       break;
-    case G_DESKTOP_STYLUS_ERASER_BUTTON_MODE_BUTTON:
+    case META_STYLUS_ERASER_BUTTON_MODE_BUTTON:
       libinput_mode = LIBINPUT_CONFIG_ERASER_BUTTON_BUTTON;
       break;
     default:
