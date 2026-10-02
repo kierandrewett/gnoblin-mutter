@@ -2445,9 +2445,6 @@ meta_display_request_pad_osd (MetaDisplay        *display,
 #endif
     }
 
-  if (!layout_path || !settings)
-    return;
-
   if (!logical_monitor)
     logical_monitor = meta_backend_get_current_logical_monitor (backend);
 
