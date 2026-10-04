@@ -1494,7 +1494,9 @@ update_tablet_area (MetaInputSettings  *input_settings,
 #endif
 
   input_settings_class = META_INPUT_SETTINGS_GET_CLASS (input_settings);
-  variant = g_settings_get_value (settings, "area");
+  variant = gnoblin_setting (input_settings, settings, "area");
+  if (!variant)
+    variant = g_settings_get_value (settings, "area");
 
   area = g_variant_get_fixed_array (variant, &n_elems, sizeof (gdouble));
   if (n_elems == 4)
