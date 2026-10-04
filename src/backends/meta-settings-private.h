@@ -85,10 +85,13 @@ gboolean meta_settings_are_xwayland_byte_swapped_clients_allowed (MetaSettings *
 gboolean meta_settings_get_xwayland_scaling_factor (MetaSettings *settings,
                                                     float        *scaling_factor);
 
+META_EXPORT_TEST
 gboolean meta_settings_is_privacy_screen_enabled (MetaSettings *settings);
 
+META_EXPORT_TEST
 void meta_settings_set_privacy_screen_enabled (MetaSettings *settings,
                                                gboolean      enabled);
 
+META_EXPORT_TEST
 void meta_settings_apply_gnoblin_privacy_screen_preferences (MetaSettings *settings,
                                                               GVariant     *preferences);
