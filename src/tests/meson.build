@@ -1292,6 +1292,13 @@ test_cases += [
     ],
   },
   {
+    'name': 'gnoblin-privacy-screen-settings',
+    'suite': 'backend',
+    'sources': [
+      'gnoblin-privacy-screen-settings-test.c',
+    ],
+  },
+  {
     'name': 'service-channel',
     'suite': 'wayland',
     'sources': [
