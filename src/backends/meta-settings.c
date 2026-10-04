@@ -76,6 +76,7 @@ struct _MetaSettings
   int font_dpi;
 
   gboolean privacy_screen;
+  gboolean privacy_screen_overridden;
 
   MetaExperimentalFeature experimental_features;
   gboolean experimental_features_overridden;
@@ -295,6 +296,9 @@ privacy_settings_changed (GSettings    *privacy_settings,
   if (g_str_equal (key, "privacy-screen"))
     {
       gboolean privacy_screen;
+
+      if (settings->privacy_screen_overridden)
+        return;
 
       privacy_screen = g_settings_get_boolean (privacy_settings, key);
 
@@ -698,8 +702,33 @@ meta_settings_set_privacy_screen_enabled (MetaSettings *settings,
     return;
 
   settings->privacy_screen = enabled;
-  g_settings_set_boolean (settings->privacy_settings, "privacy-screen",
-                          enabled);
+
+  if (!settings->privacy_screen_overridden)
+    g_settings_set_boolean (settings->privacy_settings, "privacy-screen",
+                            enabled);
+}
+
+void
+meta_settings_apply_gnoblin_privacy_screen_preferences (MetaSettings *settings,
+                                                        GVariant     *preferences)
+{
+  gboolean overridden = FALSE;
+  gboolean enabled = FALSE;
+
+  if (preferences)
+    overridden = g_variant_lookup (preferences, "privacy-screen", "b", &enabled);
+
+  settings->privacy_screen_overridden = overridden;
+
+  if (!overridden)
+    enabled = g_settings_get_boolean (settings->privacy_settings,
+                                      "privacy-screen");
+
+  if (settings->privacy_screen != enabled)
+    {
+      settings->privacy_screen = enabled;
+      g_signal_emit (settings, signals[PRIVACY_SCREEN_CHANGED], 0);
+    }
 }
 
 MetaSettings *

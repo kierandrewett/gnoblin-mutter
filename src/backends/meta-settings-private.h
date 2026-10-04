@@ -89,3 +89,6 @@ gboolean meta_settings_is_privacy_screen_enabled (MetaSettings *settings);
 
 void meta_settings_set_privacy_screen_enabled (MetaSettings *settings,
                                                gboolean      enabled);
+
+void meta_settings_apply_gnoblin_privacy_screen_preferences (MetaSettings *settings,
+                                                              GVariant     *preferences);
