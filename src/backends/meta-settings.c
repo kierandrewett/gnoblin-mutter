@@ -77,6 +77,9 @@ struct _MetaSettings
 
   gboolean privacy_screen;
   gboolean privacy_screen_overridden;
+  gboolean privacy_screen_config_value;
+  gboolean privacy_screen_runtime_overridden;
+  gboolean privacy_screen_runtime_value;
 
   MetaExperimentalFeature experimental_features;
   gboolean experimental_features_overridden;
@@ -297,7 +300,8 @@ privacy_settings_changed (GSettings    *privacy_settings,
     {
       gboolean privacy_screen;
 
-      if (settings->privacy_screen_overridden)
+      if (settings->privacy_screen_overridden ||
+          settings->privacy_screen_runtime_overridden)
         return;
 
       privacy_screen = g_settings_get_boolean (privacy_settings, key);
@@ -698,6 +702,9 @@ void
 meta_settings_set_privacy_screen_enabled (MetaSettings *settings,
                                           gboolean      enabled)
 {
+  if (settings->privacy_screen_runtime_overridden)
+    return;
+
   if (settings->privacy_screen == enabled)
     return;
 
@@ -719,8 +726,34 @@ meta_settings_apply_gnoblin_privacy_screen_preferences (MetaSettings *settings,
     overridden = g_variant_lookup (preferences, "privacy-screen", "b", &enabled);
 
   settings->privacy_screen_overridden = overridden;
+  settings->privacy_screen_config_value = enabled;
 
-  if (!overridden)
+  if (settings->privacy_screen_runtime_overridden)
+    enabled = settings->privacy_screen_runtime_value;
+  else if (!overridden)
+    enabled = g_settings_get_boolean (settings->privacy_settings,
+                                      "privacy-screen");
+
+  if (settings->privacy_screen != enabled)
+    {
+      settings->privacy_screen = enabled;
+      g_signal_emit (settings, signals[PRIVACY_SCREEN_CHANGED], 0);
+    }
+}
+
+void
+meta_settings_apply_gnoblin_privacy_screen_runtime_override (MetaSettings *settings,
+                                                             gboolean      overridden,
+                                                             gboolean      enabled)
+{
+  settings->privacy_screen_runtime_overridden = overridden;
+  settings->privacy_screen_runtime_value = enabled;
+
+  if (overridden)
+    enabled = settings->privacy_screen_runtime_value;
+  else if (settings->privacy_screen_overridden)
+    enabled = settings->privacy_screen_config_value;
+  else
     enabled = g_settings_get_boolean (settings->privacy_settings,
                                       "privacy-screen");
 
