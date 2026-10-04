@@ -2745,6 +2745,44 @@ static BuiltinKeybinding NATIVE_KEYBINDINGS[] = {
   { "switch-to-session-12", META_KEY_BINDING_NON_MASKABLE, META_KEYBINDING_ACTION_NONE, handle_switch_vt, 12 },
 };
 
+static gboolean
+builtin_keybinding_has_handler (BuiltinKeybinding *keybindings,
+                                gsize              n_keybindings,
+                                const char        *name)
+{
+  for (gsize i = 0; i < n_keybindings; i++)
+    {
+      if (g_str_equal (keybindings[i].name, name) && keybindings[i].handler)
+        return TRUE;
+    }
+
+  return FALSE;
+}
+
+gboolean
+meta_keybindings_gnoblin_action_supported (const char *group,
+                                           const char *name)
+{
+  if (!group || !name)
+    return FALSE;
+
+  if (g_str_equal (group, "wm"))
+    return builtin_keybinding_has_handler (COMMON_KEYBINDINGS,
+                                           G_N_ELEMENTS (COMMON_KEYBINDINGS), name);
+
+  if (g_str_equal (group, "mutter"))
+    return builtin_keybinding_has_handler (MUTTER_KEYBINDINGS,
+                                           G_N_ELEMENTS (MUTTER_KEYBINDINGS), name);
+
+  if (g_str_equal (group, "wayland"))
+    return builtin_keybinding_has_handler (WAYLAND_KEYBINDINGS,
+                                           G_N_ELEMENTS (WAYLAND_KEYBINDINGS), name) ||
+           builtin_keybinding_has_handler (NATIVE_KEYBINDINGS,
+                                           G_N_ELEMENTS (NATIVE_KEYBINDINGS), name);
+
+  return FALSE;
+}
+
 static void
 init_builtin_key_bindings (MetaDisplay *display)
 {

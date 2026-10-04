@@ -143,6 +143,8 @@ gboolean meta_prefs_add_keybinding          (const char           *name,
                                              MetaKeyBindingFlags   flags);
 
 gboolean meta_prefs_remove_keybinding       (const char    *name);
+gboolean meta_keybindings_gnoblin_action_supported (const char *group,
+                                                    const char *name);
 
 GList * meta_prefs_get_keybindings (void);
 void meta_prefs_get_overlay_bindings (MetaKeyCombo combos[2]);
